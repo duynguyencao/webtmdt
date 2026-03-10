@@ -1,0 +1,353 @@
+.header {
+  background: var(--white);
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.header-top {
+  background: var(--text-dark);
+  color: var(--white);
+  padding: 8px 0;
+  font-size: 0.875rem;
+}
+
+.header-top-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.header-info {
+  display: flex;
+  gap: 2rem;
+}
+
+.header-info span {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.header-actions a {
+  color: var(--white);
+  transition: var(--transition);
+}
+
+.header-actions a:hover {
+  color: var(--primary-color);
+}
+
+.header-greeting {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.875rem;
+}
+
+.header-logout {
+  background: none;
+  color: var(--white);
+  font-size: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  transition: var(--transition);
+}
+
+.header-logout:hover {
+  color: var(--primary-color);
+}
+
+.header-main {
+  padding: 1rem 0;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.logo {
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+}
+
+.logo-text {
+  font-size: 1.75rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+}
+
+.logo-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+.search-form {
+  flex: 1;
+  max-width: 600px;
+  display: flex;
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 50px 12px 20px;
+  border: 2px solid var(--border-color);
+  border-radius: 50px;
+  font-size: 1rem;
+  transition: var(--transition);
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.1);
+}
+
+.search-btn {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--primary-color);
+  color: var(--white);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.search-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.header-icons {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.cart-icon,
+.user-icon {
+  position: relative;
+  font-size: 1.5rem;
+  color: var(--text-dark);
+  transition: var(--transition);
+  padding: 8px;
+  border-radius: 50%;
+}
+
+.cart-icon:hover,
+.user-icon:hover {
+  background: var(--accent-color);
+  color: var(--primary-color);
+}
+
+.cart-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: var(--primary-color);
+  color: var(--white);
+  font-size: 0.75rem;
+  font-weight: 600;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--white);
+}
+
+.menu-toggle {
+  display: none;
+  font-size: 1.5rem;
+  color: var(--text-dark);
+  background: none;
+  padding: 8px;
+}
+
+.navbar {
+  background: var(--text-dark);
+  padding: 0;
+}
+
+.nav-menu {
+  display: flex;
+  list-style: none;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  justify-content: center;
+}
+
+.nav-menu li {
+  position: relative;
+}
+
+.nav-menu > li > a,
+.nav-link-root {
+  display: block;
+  padding: 0.85rem 1.4rem;
+  color: var(--white);
+  font-weight: 500;
+  transition: var(--transition);
+  position: relative;
+}
+
+.nav-menu > li > a::after,
+.nav-link-root::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) scaleX(0);
+  width: 80%;
+  height: 3px;
+  background: var(--primary-color);
+  transition: var(--transition);
+}
+
+.nav-menu > li > a:hover,
+.nav-link-root:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--primary-color);
+}
+
+.nav-menu > li > a:hover::after,
+.nav-link-root:hover::after {
+  transform: translateX(-50%) scaleX(1);
+}
+
+/* Mega menu for product-related links */
+.nav-item-has-dropdown {
+  position: relative;
+}
+
+.mega-menu {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 100%;
+  background: #ffffff;
+  color: var(--text-dark);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 0.75rem 1.5rem;
+  display: none;
+  border-radius: 0 0 8px 8px;
+  z-index: 1001;
+}
+
+.nav-item-has-dropdown:hover .mega-menu {
+  display: block;
+}
+
+.mega-menu-inner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.35rem 1.75rem;
+}
+
+.mega-menu-link {
+  display: block;
+  padding: 0.15rem 0;
+  color: var(--text-dark);
+  font-weight: 500;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.mega-menu-link:hover {
+  color: var(--primary-color);
+}
+
+@media (max-width: 968px) {
+  .header-content {
+    flex-wrap: wrap;
+  }
+
+  .search-form {
+    order: 3;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .menu-toggle {
+    display: block;
+  }
+
+  .navbar {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+
+  .navbar.active {
+    max-height: 500px;
+  }
+
+  .nav-menu {
+    flex-direction: column;
+  }
+
+  .nav-menu > li > a,
+  .nav-link-root {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .mega-menu {
+    position: static;
+    transform: none;
+    box-shadow: none;
+    background: transparent;
+    padding: 0.25rem 1.5rem 0.75rem;
+    display: block;
+  }
+
+  .mega-menu-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .mega-menu-link {
+    color: var(--white);
+    opacity: 0.9;
+  }
+}
+
+@media (max-width: 640px) {
+  .header-top-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .header-info {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .logo {
+    min-width: auto;
+  }
+}

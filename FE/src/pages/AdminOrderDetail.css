@@ -1,0 +1,196 @@
+.admin-order-detail-page {
+  padding: 2rem 0;
+  min-height: 70vh;
+}
+
+.admin-order-detail-header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.admin-order-detail-header h1 {
+  font-size: 1.5rem;
+  color: var(--text-dark);
+  margin: 0.75rem 0 0.25rem 0;
+  width: 100%;
+}
+
+.admin-order-detail-date {
+  font-size: 0.9375rem;
+  color: var(--text-light);
+}
+
+.admin-order-detail-status {
+  display: inline-block;
+  margin-left: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.admin-order-detail-status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.admin-order-detail-status-confirmed {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.admin-order-detail-status-shipped {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.admin-order-detail-status-delivered {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.admin-order-detail-status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.admin-order-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  align-items: center;
+}
+
+.admin-order-detail-paid-hint {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--text-light);
+}
+
+.admin-order-detail-actions .btn-danger {
+  color: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.admin-order-detail-actions .btn-danger:hover {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.admin-order-detail-actions .btn-success {
+  color: #059669;
+  border-color: #059669;
+}
+
+.admin-order-detail-actions .btn-success:hover {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.admin-order-detail-payment-status {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.admin-order-detail-payment-status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.admin-order-detail-payment-status-paid {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.admin-order-detail-error {
+  color: #b91c1c;
+  margin-bottom: 1rem;
+}
+
+.admin-order-detail-card {
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-order-detail-card h2 {
+  font-size: 1.125rem;
+  margin: 0 0 1rem 0;
+  color: var(--text-dark);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+}
+
+.admin-order-detail-dl {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0;
+}
+
+.admin-order-detail-dl dt {
+  font-weight: 500;
+  color: var(--text-light);
+  font-size: 0.9375rem;
+}
+
+.admin-order-detail-dl dd {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.admin-order-detail-total {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: var(--primary, #2563eb);
+}
+
+.admin-order-detail-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-order-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-order-detail-table th,
+.admin-order-detail-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.admin-order-detail-table th {
+  background: var(--bg-light);
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-dark);
+}
+
+.admin-order-detail-item-name {
+  font-weight: 500;
+}
+
+.admin-order-detail-item-brand {
+  font-size: 0.875rem;
+  color: var(--text-light);
+}
+
+.admin-order-detail-page .admin-loading {
+  padding: 4rem;
+  text-align: center;
+  color: var(--text-light);
+}

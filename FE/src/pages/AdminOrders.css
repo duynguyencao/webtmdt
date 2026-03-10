@@ -1,0 +1,107 @@
+.admin-orders-page {
+  padding: 2rem 0;
+  min-height: 70vh;
+}
+
+.admin-orders-page .admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.admin-orders-page .admin-header h1 {
+  font-size: 1.75rem;
+  color: var(--text-dark);
+}
+
+.admin-orders-page .admin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-order-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-order-search-input {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  min-width: 200px;
+  font-size: 0.9375rem;
+}
+
+.admin-order-row-clickable {
+  cursor: pointer;
+}
+
+.admin-order-row-clickable:hover {
+  background: var(--bg-light);
+}
+
+.admin-orders-page .admin-table-wrap {
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+}
+
+.admin-orders-page .admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-orders-page .admin-table th,
+.admin-orders-page .admin-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.admin-orders-page .admin-table th {
+  background: var(--bg-light);
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.admin-orders-page .admin-table tbody tr:hover {
+  background: var(--bg-light);
+}
+
+.admin-order-phone {
+  font-size: 0.875rem;
+  color: var(--text-light);
+}
+
+.admin-orders-page .admin-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-light);
+}
+
+.admin-orders-page .admin-loading {
+  padding: 4rem;
+  text-align: center;
+  color: var(--text-light);
+}
+
+.admin-order-status {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.admin-order-status-pending { background: #fef3c7; color: #92400e; }
+.admin-order-status-confirmed { background: #dbeafe; color: #1e40af; }
+.admin-order-status-shipped { background: #e0e7ff; color: #3730a3; }
+.admin-order-status-delivered { background: #d1fae5; color: #065f46; }
+.admin-order-status-cancelled { background: #fee2e2; color: #991b1b; }
