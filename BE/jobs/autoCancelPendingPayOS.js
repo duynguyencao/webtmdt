@@ -89,6 +89,16 @@ export function startAutoCancelPendingPayOSJob() {
           }
         }
 
+        // Best-effort cancel payment request trên PayOS để tránh late-payment
+        try {
+          const paymentLinkId = String(order.payosPaymentLinkId || '').trim()
+          if (paymentLinkId) {
+            await payOS.paymentRequests.cancel(paymentLinkId, 'Auto cancel pending PayOS order')
+          }
+        } catch {
+          // ignore
+        }
+
         order.status = 'cancelled'
         await order.save()
       }

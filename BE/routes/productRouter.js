@@ -9,31 +9,6 @@ const router = Router()
 const ONLY_CATEGORY = 'vot'
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-const ensureDefaultVariant = (product) => {
-  const variants = Array.isArray(product?.variants) ? product.variants : []
-  if (variants.length > 0) return product
-  const legacyStock = Math.max(0, Number(product?.stock) || 0)
-  const sku = `P${product?.id ?? '0'}-DEFAULT`
-  return {
-    ...product,
-    variants: [{
-      sku,
-      attrs: { weight: '', grip: '' },
-      priceOverride: null,
-      stock: legacyStock,
-      inStock: legacyStock > 0
-    }],
-    stock: legacyStock,
-    inStock: legacyStock > 0
-  }
-}
-
-const deriveStockFromVariants = (product) => {
-  const variants = Array.isArray(product?.variants) ? product.variants : []
-  const totalStock = variants.reduce((sum, v) => sum + Math.max(0, Number(v?.stock) || 0), 0)
-  return { stock: totalStock, inStock: totalStock > 0 }
-}
-
 const normalizeProductBody = (body) => {
   const next = { ...body }
   const rawPrice = Number(next.price) || 0
@@ -72,23 +47,21 @@ router.get('/suggestions', async (req, res) => {
       isDeleted: { $ne: true },
       $or: [{ name: q }, { brand: q }]
     })
-      .select('id name brand price originalPrice image images sale variants stock inStock')
+      .select('id name brand price originalPrice image images sale stock')
       .limit(limit)
       .lean()
 
     const json = list.map(({ _id, __v, ...rest0 }) => {
-      const rest = ensureDefaultVariant(rest0)
-      const derived = deriveStockFromVariants(rest)
-      const images = Array.isArray(rest.images) ? rest.images : []
-      const image = rest.image || images[0] || ''
+      const images = Array.isArray(rest0.images) ? rest0.images : []
+      const image = rest0.image || images[0] || ''
       return {
-        id: rest.id,
-        name: rest.name,
-        brand: rest.brand,
-        price: rest.price,
-        originalPrice: rest.originalPrice,
-        sale: rest.sale,
-        stock: derived.stock,
+        id: rest0.id,
+        name: rest0.name,
+        brand: rest0.brand,
+        price: rest0.price,
+        originalPrice: rest0.originalPrice,
+        sale: rest0.sale,
+        stock: Math.max(0, Number(rest0.stock) || 0),
         image
       }
     })
@@ -116,7 +89,7 @@ router.get('/', async (req, res) => {
     const usePaging = Boolean(req.query.page || req.query.limit)
 
     const query = Product.find(filter)
-      .select('id name brand category price originalPrice image images rating reviews sale variants stock inStock')
+      .select('id name brand category price originalPrice image images rating reviews sale stock')
       .sort({ id: -1 })
 
     const [list, total] = await Promise.all([
@@ -125,13 +98,12 @@ router.get('/', async (req, res) => {
     ])
 
     const json = list.map(({ _id, __v, ...rest0 }) => {
-      const rest = ensureDefaultVariant(rest0)
-      const derived = deriveStockFromVariants(rest)
-      const images = Array.isArray(rest.images) ? rest.images : []
-      const image = rest.image || images[0] || ''
+      const images = Array.isArray(rest0.images) ? rest0.images : []
+      const image = rest0.image || images[0] || ''
       return {
-        ...rest,
-        ...derived,
+        ...rest0,
+        stock: Math.max(0, Number(rest0.stock) || 0),
+        inStock: Math.max(0, Number(rest0.stock) || 0) > 0,
         image
       }
     })
@@ -166,19 +138,19 @@ router.get('/best-sellers', async (req, res) => {
 
     const ids = agg.map((x) => x._id).filter((x) => typeof x === 'number')
     const products = await Product.find({ id: { $in: ids }, category: ONLY_CATEGORY, isDeleted: { $ne: true } })
-      .select('id name brand category price originalPrice image images rating reviews sale variants stock inStock')
+      .select('id name brand category price originalPrice image images rating reviews sale stock')
       .lean()
 
     const productMap = new Map(products.map((p) => [p.id, p]))
     const json = agg
       .map((x) => {
-        const p0 = productMap.get(x._id)
-        const p = p0 ? ensureDefaultVariant(p0) : null
+        const p = productMap.get(x._id) || null
         if (!p) return null
-        const derived = deriveStockFromVariants(p)
+        const stock = Math.max(0, Number(p.stock) || 0)
         return {
           ...p,
-          ...derived,
+          stock,
+          inStock: stock > 0,
           unitsSold: x.unitsSold || 0,
           revenue: x.revenue || 0
         }
@@ -198,15 +170,14 @@ router.get('/newest', async (req, res) => {
     const list = await Product.find({ category: ONLY_CATEGORY, isDeleted: { $ne: true } })
       .sort({ id: -1 })
       .limit(limit)
-      .select('id name brand category price originalPrice image images rating reviews sale variants stock inStock')
+      .select('id name brand category price originalPrice image images rating reviews sale stock')
       .lean()
 
     const json = list.map(({ _id, __v, ...rest0 }) => {
-      const rest = ensureDefaultVariant(rest0)
-      const derived = deriveStockFromVariants(rest)
-      const images = Array.isArray(rest.images) ? rest.images : []
-      const image = rest.image || images[0] || ''
-      return { ...rest, ...derived, image }
+      const images = Array.isArray(rest0.images) ? rest0.images : []
+      const image = rest0.image || images[0] || ''
+      const stock = Math.max(0, Number(rest0.stock) || 0)
+      return { ...rest0, stock, inStock: stock > 0, image }
     })
     res.json(json)
   } catch (err) {
@@ -221,15 +192,14 @@ router.get('/discounted', async (req, res) => {
     const list = await Product.find({ category: ONLY_CATEGORY, sale: true, isDeleted: { $ne: true } })
       .sort({ id: -1 })
       .limit(limit)
-      .select('id name brand category price originalPrice image images rating reviews sale variants stock inStock')
+      .select('id name brand category price originalPrice image images rating reviews sale stock')
       .lean()
 
     const json = list.map(({ _id, __v, ...rest0 }) => {
-      const rest = ensureDefaultVariant(rest0)
-      const derived = deriveStockFromVariants(rest)
-      const images = Array.isArray(rest.images) ? rest.images : []
-      const image = rest.image || images[0] || ''
-      return { ...rest, ...derived, image }
+      const images = Array.isArray(rest0.images) ? rest0.images : []
+      const image = rest0.image || images[0] || ''
+      const stock = Math.max(0, Number(rest0.stock) || 0)
+      return { ...rest0, stock, inStock: stock > 0, image }
     })
     res.json(json)
   } catch (err) {
@@ -255,7 +225,7 @@ router.get('/related/:id', async (req, res) => {
     })
       .sort({ id: -1 })
       .limit(limit)
-      .select('id name brand category price originalPrice image images rating reviews sale variants stock inStock')
+      .select('id name brand category price originalPrice image images rating reviews sale stock')
       .lean()
 
     let list = primary
@@ -268,17 +238,16 @@ router.get('/related/:id', async (req, res) => {
       })
         .sort({ id: -1 })
         .limit(limit - primary.length)
-        .select('id name brand category price originalPrice image images rating reviews sale variants stock inStock')
+        .select('id name brand category price originalPrice image images rating reviews sale stock')
         .lean()
       list = [...primary, ...extra]
     }
 
     const json = list.map(({ _id, __v, ...rest0 }) => {
-      const rest = ensureDefaultVariant(rest0)
-      const derived = deriveStockFromVariants(rest)
-      const images = Array.isArray(rest.images) ? rest.images : []
-      const image = rest.image || images[0] || ''
-      return { ...rest, ...derived, image }
+      const images = Array.isArray(rest0.images) ? rest0.images : []
+      const image = rest0.image || images[0] || ''
+      const stock = Math.max(0, Number(rest0.stock) || 0)
+      return { ...rest0, stock, inStock: stock > 0, image }
     })
 
     res.json(json)
@@ -293,11 +262,10 @@ router.get('/:id', async (req, res) => {
     const id = parseInt(req.params.id, 10)
     if (Number.isNaN(id)) return res.status(400).json({ error: 'ID không hợp lệ' })
     const product0 = await Product.findOne({ id, isDeleted: { $ne: true } }).lean()
-    const product = product0 ? ensureDefaultVariant(product0) : null
-    if (!product) return res.status(404).json({ error: 'Không tìm thấy sản phẩm' })
-    const { _id, __v, ...rest0 } = product
-    const derived = deriveStockFromVariants(rest0)
-    const rest = { ...rest0, ...derived }
+    if (!product0) return res.status(404).json({ error: 'Không tìm thấy sản phẩm' })
+    const { _id, __v, ...rest0 } = product0
+    const stock = Math.max(0, Number(rest0.stock) || 0)
+    const rest = { ...rest0, stock, inStock: stock > 0 }
     if (!rest.images?.length) rest.images = [rest.image, rest.image, rest.image]
     res.json(rest)
   } catch (err) {
@@ -315,10 +283,8 @@ router.post('/', verifyToken, requireRole('admin'), validateBody(productUpsertSc
     }
     const max = await Product.findOne().sort({ id: -1 }).select('id').lean()
     const nextId = (max?.id ?? 0) + 1
-    // Nếu FE chưa gửi variants thì tạo variant mặc định từ stock legacy.
-    const withVariants = ensureDefaultVariant({ ...body, id: nextId })
-    const derived = deriveStockFromVariants(withVariants)
-    const product = await Product.create({ ...withVariants, ...derived })
+    const stock = Math.max(0, Number(body.stock) || 0)
+    const product = await Product.create({ ...body, id: nextId, stock })
     const { _id, __v, ...rest } = product.toObject()
     res.status(201).json(rest)
   } catch (err) {
@@ -333,11 +299,9 @@ router.put('/:id', verifyToken, requireRole('admin'), validateBody(productUpsert
     if (Number.isNaN(id)) return res.status(400).json({ error: 'ID không hợp lệ' })
     const body = normalizeProductBody(req.body)
     delete body.id // không cho phép đổi id sản phẩm
-    const withVariants = ensureDefaultVariant(body)
-    const derived = deriveStockFromVariants(withVariants)
     const product = await Product.findOneAndUpdate(
       { id },
-      { $set: { ...withVariants, ...derived } },
+      { $set: { ...body, stock: Math.max(0, Number(body.stock) || 0) } },
       { new: true, runValidators: true }
     ).lean()
     if (!product) return res.status(404).json({ error: 'Không tìm thấy sản phẩm' })

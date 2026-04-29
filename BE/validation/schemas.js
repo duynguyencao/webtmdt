@@ -27,9 +27,6 @@ export const orderCreateSchema = z.object({
   items: z.array(z.object({
     id: z.number().int().positive(),
     quantity: z.number().int().positive(),
-    // legacy fields (variants/addOn) – giữ optional để không làm hỏng client cũ
-    sku: z.string().trim().optional(),
-    addOn: z.any().optional()
   })).min(1),
   paymentMethod: z.enum(['cod', 'payos']).optional(),
   note: z.string().optional(),
@@ -39,10 +36,7 @@ export const orderCreateSchema = z.object({
 export const cartItemUpsertSchema = z.object({
   productId: z.number().int().positive().optional(),
   id: z.number().int().positive().optional(),
-  quantity: z.number().int().positive(),
-  // legacy fields
-  sku: z.string().trim().optional(),
-  addOn: z.any().optional()
+  quantity: z.number().int().positive()
 }).refine((v) => v.productId != null || v.id != null, { message: 'Thiếu productId' })
 
 export const cartReplaceSchema = z.object({

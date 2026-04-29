@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
+import { useCart } from '../context/CartContext'
 import './MyOrderDetail.css'
+
+const PAYOS_PENDING_KEY = 'payos_pending_v1'
 
 const formatPrice = (price) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)
@@ -28,6 +31,7 @@ const STATUS_LABELS = {
 const MyOrderDetail = () => {
   const navigate = useNavigate()
   const { orderId } = useParams()
+  const { clearCart } = useCart()
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -46,6 +50,23 @@ const MyOrderDetail = () => {
       .catch((err) => setError(err.message || 'Không tải được đơn hàng'))
       .finally(() => setLoading(false))
   }, [navigate, orderId])
+
+  useEffect(() => {
+    // Khi PayOS đã thanh toán thành công: clear cart nếu snapshot đang gắn với đơn này
+    const isPayOS = String(order?.paymentMethod || '').toLowerCase() === 'payos'
+    const isPaid = order?.paymentStatus === 'paid'
+    if (!orderId || !isPayOS || !isPaid) return
+    try {
+      const raw = localStorage.getItem(PAYOS_PENDING_KEY)
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      if (parsed?.orderId !== orderId) return
+      localStorage.removeItem(PAYOS_PENDING_KEY)
+      clearCart()
+    } catch {
+      // ignore
+    }
+  }, [orderId, order?.paymentMethod, order?.paymentStatus, clearCart])
 
   const handleCancel = async (e) => {
     e.preventDefault()

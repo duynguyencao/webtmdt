@@ -87,7 +87,7 @@ router.post('/register', authLimiter, validateBody(registerSchema), async (req, 
           { expiresIn: '24h' }
         )
 
-        const baseUrl = String(req.headers.origin || process.env.FE_BASE_URL || 'http://localhost:3000').trim()
+        const baseUrl = String(process.env.FE_BASE_URL || 'http://localhost:3000').trim()
         await sendEmailVerification({ to: existing.email, name: existing.name, token: verifyToken, baseUrl })
         return res.status(201).json({
           message: 'Email đã tồn tại nhưng chưa xác thực. Mình đã gửi lại link xác thực vào email của bạn.'
@@ -110,7 +110,7 @@ router.post('/register', authLimiter, validateBody(registerSchema), async (req, 
       { expiresIn: '24h' }
     )
 
-    const baseUrl = String(req.headers.origin || process.env.FE_BASE_URL || 'http://localhost:3000').trim()
+    const baseUrl = String(process.env.FE_BASE_URL || 'http://localhost:3000').trim()
     await sendEmailVerification({ to: user.email, name: user.name, token: verifyToken, baseUrl })
 
     return res.status(201).json({

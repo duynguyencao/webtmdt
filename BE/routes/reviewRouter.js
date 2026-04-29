@@ -7,23 +7,6 @@ import { verifyToken } from '../middleware/auth.js'
 
 const router = Router()
 
-let reviewIndexesReady = false
-const ensureReviewIndexes = async () => {
-  if (reviewIndexesReady) return
-  try {
-    // drop legacy unique index (productId + userId) để cho phép đánh giá nhiều lần theo mỗi orderId
-    await Review.collection.dropIndex('productId_1_userId_1')
-  } catch {
-    // ignore if not exist
-  }
-  try {
-    await Review.collection.createIndex({ productId: 1, userId: 1, orderId: 1 }, { unique: true })
-  } catch {
-    // ignore
-  }
-  reviewIndexesReady = true
-}
-
 const clampRating = (value) => {
   const n = Number(value) || 0
   if (!Number.isFinite(n)) return 0
@@ -56,7 +39,6 @@ const recomputeProductRating = async (productId) => {
 // GET /api/reviews/product/:productId — công khai
 router.get('/product/:productId', async (req, res) => {
   try {
-    await ensureReviewIndexes()
     const productId = parseInt(req.params.productId, 10)
     if (Number.isNaN(productId)) return res.status(400).json({ error: 'productId không hợp lệ' })
     const list = await Review.find({ productId })
@@ -101,7 +83,6 @@ const pickDeliveredOrderId = async (userId, productId, preferredOrderId) => {
 // POST /api/reviews — buyer (JWT), chỉ khi đã delivered; 1 lần mua (orderId) chỉ được 1 review/sản phẩm
 router.post('/', verifyToken, async (req, res) => {
   try {
-    await ensureReviewIndexes()
     const productId = Number(req.body?.productId)
     const preferredOrderId = String(req.body?.orderId || '').trim() || null
     const rating = clampRating(req.body?.rating)
@@ -146,7 +127,6 @@ router.post('/', verifyToken, async (req, res) => {
 // PUT /api/reviews/:id — sửa đánh giá (chỉ chủ review)
 router.put('/:id', verifyToken, async (req, res) => {
   try {
-    await ensureReviewIndexes()
     const id = String(req.params.id || '').trim()
     const rating = clampRating(req.body?.rating)
     const comment = String(req.body?.comment || '').trim().slice(0, 1500)
@@ -173,7 +153,6 @@ router.put('/:id', verifyToken, async (req, res) => {
 // DELETE /api/reviews/:id — xóa đánh giá (chỉ chủ review)
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
-    await ensureReviewIndexes()
     const id = String(req.params.id || '').trim()
     if (!id) return res.status(400).json({ error: 'id không hợp lệ' })
 

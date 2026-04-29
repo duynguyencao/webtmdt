@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { api } from '../api/client'
 
+const PAYOS_PENDING_KEY = 'payos_pending_v1'
+const CART_STORAGE_KEY = 'cart'
+
 const PayOSCancel = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -20,7 +23,22 @@ const PayOSCancel = () => {
     }
 
     api.cancelPayOSAndDeleteOrder(orderId)
-      .then(() => navigate('/orders', { replace: true }))
+      .then(() => {
+        // Restore cart snapshot nếu có
+        try {
+          const raw = localStorage.getItem(PAYOS_PENDING_KEY)
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            if (parsed?.orderId === orderId && Array.isArray(parsed?.cart)) {
+              localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(parsed.cart))
+            }
+          }
+          localStorage.removeItem(PAYOS_PENDING_KEY)
+        } catch {
+          // ignore
+        }
+        navigate('/orders', { replace: true })
+      })
       .catch((err) => {
         setError(err.message || 'Không thể hủy thanh toán PayOS')
       })

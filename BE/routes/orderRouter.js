@@ -9,11 +9,9 @@ import mongoose from 'mongoose'
 import rateLimit from 'express-rate-limit'
 import { validateBody } from '../validation/validate.js'
 import { orderCreateSchema } from '../validation/schemas.js'
+import PayOSPaymentEvent from '../models/PayOSPaymentEvent.js'
 
 const router = Router()
-
-// Legacy helper (variants) – giữ để tương thích dữ liệu cũ, nhưng luồng mua hàng hiện dùng Product.stock
-const defaultSkuForProductId = (productId) => `P${productId}-DEFAULT`
 
 const orderLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -33,8 +31,7 @@ const createPayOSClient = () => {
 }
 
 const getReturnCancelUrls = (req, orderId) => {
-  const origin = String(req.headers.origin || process.env.FE_BASE_URL || '').trim().replace(/\/$/, '')
-  const base = origin || 'http://localhost:3000'
+  const base = String(process.env.FE_BASE_URL || '').trim().replace(/\/$/, '') || 'http://localhost:3000'
   const returnUrl = `${base}/orders/${encodeURIComponent(orderId)}`
   // Khi user bấm "Hủy thanh toán" trên PayOS => redirect về FE route để tự động hủy + xóa đơn
   const cancelUrl = `${base}/payos/cancel?orderId=${encodeURIComponent(orderId)}`
@@ -493,10 +490,7 @@ router.patch('/:orderId/confirm', verifyToken, requireRole('admin'), async (req,
       return res.status(400).json({ error: 'Chỉ xác nhận đơn COD' })
     }
     order.status = 'confirmed'
-    // Với COD: xem như đã thanh toán khi admin xác nhận.
-    if (String(order.paymentMethod || '').toLowerCase() === 'cod') {
-      order.paymentStatus = 'paid'
-    }
+    // COD chỉ được xem là paid khi giao thành công (shipper deliver).
     await order.save()
     res.json({ orderId, status: order.status, message: 'Đã xác nhận đơn hàng' })
   } catch (err) {
@@ -639,6 +633,22 @@ router.patch('/:orderId/cancel-payos-and-delete', verifyToken, async (req, res) 
         await coupon.save()
       }
     }
+
+    // Tombstone log để đối soát nếu webhook đến muộn sau khi hard-delete
+    await PayOSPaymentEvent.create({
+      orderId,
+      orderCode: order.payosOrderCode ?? undefined,
+      paymentLinkId: order.payosPaymentLinkId ?? undefined,
+      amount: Math.round(Number(order.total) || 0) || undefined,
+      eventType: 'buyer_cancel',
+      desc: 'Buyer cancelled on PayOS checkout; order deleted',
+      raw: {
+        paymentStatus: order.paymentStatus,
+        status: order.status,
+        userId: String(order.userId || ''),
+        createdAt: order.createdAt
+      }
+    }).catch(() => {})
 
     await Order.deleteOne({ orderId })
     return res.json({ orderId, message: 'Đã hủy thanh toán và xóa đơn hàng' })

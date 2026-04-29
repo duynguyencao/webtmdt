@@ -7,7 +7,7 @@ import { cartReplaceSchema, cartItemUpsertSchema } from '../validation/schemas.j
 
 const router = Router()
 
-const defaultSkuForProductId = (productId) => `P${productId}-DEFAULT` // legacy
+// Inventory uses Product.stock only (no sku/addOn)
 
 const expandCartItems = async (items = []) => {
   const productIds = [...new Set(items.map((it) => Number(it.productId)).filter((x) => Number.isFinite(x)))]
@@ -48,7 +48,7 @@ const normalizeIncomingItems = (items = []) => {
       const productId = it?.productId != null ? Number(it.productId) : (it?.id != null ? Number(it.id) : null)
       if (productId == null || Number.isNaN(productId)) return null
       const quantity = Math.max(1, Math.floor(Number(it?.quantity) || 1))
-      return { productId, sku: defaultSkuForProductId(productId), quantity, addOn: undefined }
+      return { productId, quantity }
     })
     .filter(Boolean)
 }

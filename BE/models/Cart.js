@@ -2,12 +2,7 @@ import mongoose from 'mongoose'
 
 const cartItemSchema = new mongoose.Schema({
   productId: { type: Number, required: true },
-  sku: { type: String, required: true, trim: true },
-  quantity: { type: Number, required: true, min: 1 },
-  addOn: {
-    stringId: { type: String, default: '' },
-    tensionKg: { type: Number, default: 0 }
-  }
+  quantity: { type: Number, required: true, min: 1 }
 }, { _id: false })
 
 const cartSchema = new mongoose.Schema({

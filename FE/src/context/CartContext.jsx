@@ -21,10 +21,27 @@ export const CartProvider = ({ children }) => {
   const lastSyncedRef = useRef(null)
   const syncTimerRef = useRef(null)
 
+  const toSyncPayload = (items) => {
+    const list = Array.isArray(items) ? items : []
+    return list
+      .map((it) => ({
+        productId: Number(it?.id),
+        quantity: Math.max(1, Number(it?.quantity) || 1)
+      }))
+      .filter((x) => Number.isFinite(x.productId) && x.productId > 0)
+      .sort((a, b) => a.productId - b.productId)
+  }
+
+  const isSameCart = (a, b) => JSON.stringify(toSyncPayload(a)) === JSON.stringify(toSyncPayload(b))
+
   useEffect(() => {
     const savedCart = localStorage.getItem(CART_STORAGE_KEY)
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart))
+    if (!savedCart) return
+    try {
+      const parsed = JSON.parse(savedCart)
+      if (Array.isArray(parsed)) setCartItems(parsed)
+    } catch {
+      // ignore corrupt storage
     }
   }, [])
 
@@ -39,8 +56,8 @@ export const CartProvider = ({ children }) => {
     api.getCart()
       .then((res) => {
         const items = Array.isArray(res?.items) ? res.items : []
-        setCartItems(items)
-        lastSyncedRef.current = JSON.stringify(items)
+        setCartItems((prev) => (isSameCart(prev, items) ? prev : items))
+        lastSyncedRef.current = JSON.stringify(toSyncPayload(items))
       })
       .catch(() => {})
   }, [])
@@ -50,10 +67,7 @@ export const CartProvider = ({ children }) => {
     const token = api.getToken()
     if (!token) return
 
-    const payload = cartItems.map((it) => ({
-      productId: Number(it.id),
-      quantity: Math.max(1, Number(it.quantity) || 1),
-    }))
+    const payload = toSyncPayload(cartItems)
     const json = JSON.stringify(payload)
     if (lastSyncedRef.current === json) return
 
@@ -63,8 +77,8 @@ export const CartProvider = ({ children }) => {
         .then((res) => {
           const items = Array.isArray(res?.items) ? res.items : null
           if (items) {
-            setCartItems(items)
-            lastSyncedRef.current = JSON.stringify(payload)
+            lastSyncedRef.current = JSON.stringify(toSyncPayload(items))
+            setCartItems((prev) => (isSameCart(prev, items) ? prev : items))
           } else {
             lastSyncedRef.current = json
           }

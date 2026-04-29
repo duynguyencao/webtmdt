@@ -10,7 +10,10 @@
     "seed": "node seed/index.js",
     "make-admin": "node scripts/makeAdmin.js",
     "make-shipper": "node scripts/makeShipper.js",
-    "migrate:variants": "node scripts/migrateProductVariants.js"
+    "migrate:variants": "node scripts/migrateProductVariants.js",
+    "migrate:review-indexes": "node scripts/migrate_review_indexes.js",
+    "migrate:remove-variants-addon": "node scripts/migrate_remove_variants_addon.js",
+    "sync-indexes": "node scripts/sync_indexes.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

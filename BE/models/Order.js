@@ -2,18 +2,11 @@ import mongoose from 'mongoose'
 
 const orderItemSchema = new mongoose.Schema({
   id: Number,
-  sku: { type: String, default: '' },
   name: String,
   brand: String,
   image: String,
   price: Number,
-  quantity: Number,
-  addOn: {
-    stringId: { type: String, default: '' },
-    stringName: { type: String, default: '' },
-    tensionKg: { type: Number, default: 0 },
-    price: { type: Number, default: 0 }
-  }
+  quantity: Number
 }, { _id: false })
 
 const orderSchema = new mongoose.Schema({
@@ -56,6 +49,11 @@ const orderSchema = new mongoose.Schema({
     default: 'pending'
   }
 }, { timestamps: true })
+
+// Indexes for hot queries
+orderSchema.index({ userId: 1, createdAt: -1 })
+orderSchema.index({ status: 1, shipperId: 1, createdAt: -1 })
+orderSchema.index({ paymentMethod: 1, paymentStatus: 1, status: 1, createdAt: -1 })
 
 orderSchema.set('toJSON', {
   transform: (doc, ret) => {

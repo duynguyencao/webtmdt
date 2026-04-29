@@ -7,6 +7,7 @@ import VnAddressSelect from '../components/VnAddressSelect'
 import './Checkout.css'
 
 const CHECKOUT_PROFILE_KEY = 'checkout_profile_v1'
+const PAYOS_PENDING_KEY = 'payos_pending_v1'
 
 const Checkout = () => {
   const { cartItems, getTotalPrice, clearCart, appliedCoupon } = useCart()
@@ -162,7 +163,10 @@ const Checkout = () => {
       setOrderTotal(totalAmount)
       setOrderPlaced(true)
       setPaymentUrl(res.paymentUrl || null)
-      clearCart()
+      const isPayOS = String(formData.paymentMethod || '').toLowerCase() === 'payos'
+      if (!isPayOS) {
+        clearCart()
+      }
 
       // Lưu lại thông tin giao hàng để lần sau tự điền.
       try {
@@ -180,6 +184,17 @@ const Checkout = () => {
       }
 
       if (formData.paymentMethod === 'payos' && res.paymentUrl) {
+        // Lưu snapshot giỏ hàng để có thể restore nếu user hủy thanh toán PayOS
+        try {
+          localStorage.setItem(PAYOS_PENDING_KEY, JSON.stringify({
+            orderId: res.orderId,
+            createdAt: Date.now(),
+            cart: cartItems,
+            appliedCoupon: appliedCoupon || null
+          }))
+        } catch {
+          // ignore
+        }
         // Redirect sang PayOS để thanh toán
         window.location.href = res.paymentUrl
         return
