@@ -166,7 +166,7 @@ const AdminProducts = () => {
   }
 
   const handleDelete = async (id, name) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa sản phẩm "${name}"?`)) return
+    if (!window.confirm(`Bạn có chắc muốn ẩn sản phẩm "${name}"?`)) return
     try {
       await api.deleteProduct(id)
       loadProducts()

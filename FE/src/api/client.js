@@ -61,6 +61,39 @@ export const api = {
     })
   },
 
+  getCart() {
+    return request('/api/cart', { headers: { ...this._authHeaders() } })
+  },
+
+  updateCart(items) {
+    return request('/api/cart', {
+      method: 'PUT',
+      headers: { ...this._authHeaders() },
+      body: JSON.stringify({ items: Array.isArray(items) ? items : [] })
+    })
+  },
+
+  getProductReviews(productId) {
+    return request(`/api/reviews/product/${encodeURIComponent(productId)}`)
+  },
+
+  createReview(body) {
+    return request('/api/reviews', {
+      method: 'POST',
+      headers: { ...this._authHeaders() },
+      body: JSON.stringify(body)
+    })
+  },
+
+  getShippingQuote(params = {}) {
+    const q = new URLSearchParams()
+    if (params.city) q.set('city', params.city)
+    if (params.district) q.set('district', params.district)
+    if (params.ward) q.set('ward', params.ward)
+    if (params.itemsCount != null) q.set('itemsCount', String(params.itemsCount))
+    return request(`/api/shipping/quote?${q.toString()}`)
+  },
+
   validateCoupon(code, orderTotal) {
     const q = new URLSearchParams({
       code: String(code || '').trim(),

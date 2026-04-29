@@ -45,11 +45,11 @@ npm run dev       # Chạy web tại http://localhost:3000
   Tài khoản mẫu (sau khi seed):  
   - Người mua: `buyer@caulong.vn` / `buyer123`  
   - Admin: `admin@caulong.vn` / `admin123`
-- Mua hàng: thêm giỏ → Giỏ hàng → **Thanh toán (yêu cầu đăng nhập)** với phương thức COD hoặc chuyển khoản ngân hàng (VietQR).
+- Mua hàng: thêm giỏ → Giỏ hàng → **Thanh toán (yêu cầu đăng nhập)** với phương thức **COD** hoặc **PayOS**.
 
 ## Cấu hình
 
-- **BE:** file `BE/.env` (copy từ `BE/.env.example`): `PORT`, `MONGODB_URI`, `JWT_SECRET`.
+- **BE:** file `BE/.env`: `PORT`, `MONGODB_URI`, `JWT_SECRET` (+ PayOS / Gmail SMTP nếu dùng).
 - **FE:** file `FE/.env`: `VITE_API_URL=http://localhost:3001` (đổi nếu BE chạy port khác).
 
 ## Lưu ý

@@ -76,7 +76,7 @@ const Cart = () => {
               </button>
             </div>
             {cartItems.map((item) => (
-              <div key={item.id} className="cart-item">
+              <div key={`${item.id}-${item.sku || 'DEFAULT'}`} className="cart-item">
                 <Link to={`/products/${item.id}`} className="cart-item-image">
                   <img src={item.image} alt={item.name} />
                 </Link>
@@ -85,6 +85,7 @@ const Cart = () => {
                     <h3 className="cart-item-name">{item.name}</h3>
                   </Link>
                   <p className="cart-item-brand">{item.brand}</p>
+                  {item.sku && <p className="cart-item-brand">SKU: {item.sku}</p>}
                   <div className="cart-item-price">
                     {formatPrice(item.price)}
                   </div>
@@ -92,14 +93,15 @@ const Cart = () => {
                 <div className="cart-item-actions">
                   <div className="quantity-controls">
                     <button
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                      onClick={() => updateQuantity(item.id, item.quantity - 1, item.sku, item.addOn || null)}
                       disabled={item.quantity <= 1}
                     >
                       <FiMinus />
                     </button>
                     <span className="quantity">{item.quantity}</span>
                     <button
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      onClick={() => updateQuantity(item.id, item.quantity + 1, item.sku, item.addOn || null)}
+                      disabled={(Number(item.stock) || 0) > 0 && item.quantity >= (Number(item.stock) || 0)}
                     >
                       <FiPlus />
                     </button>
@@ -109,7 +111,7 @@ const Cart = () => {
                   </div>
                   <button
                     className="remove-btn"
-                    onClick={() => removeFromCart(item.id)}
+                    onClick={() => removeFromCart(item.id, item.sku, item.addOn || null)}
                     aria-label="Xóa sản phẩm"
                   >
                     <FiTrash2 />

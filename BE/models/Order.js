@@ -2,11 +2,18 @@ import mongoose from 'mongoose'
 
 const orderItemSchema = new mongoose.Schema({
   id: Number,
+  sku: { type: String, default: '' },
   name: String,
   brand: String,
   image: String,
   price: Number,
-  quantity: Number
+  quantity: Number,
+  addOn: {
+    stringId: { type: String, default: '' },
+    stringName: { type: String, default: '' },
+    tensionKg: { type: Number, default: 0 },
+    price: { type: Number, default: 0 }
+  }
 }, { _id: false })
 
 const orderSchema = new mongoose.Schema({

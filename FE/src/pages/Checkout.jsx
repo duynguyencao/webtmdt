@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { FiCheckCircle } from 'react-icons/fi'
 import { useCart } from '../context/CartContext'
 import { api } from '../api/client'
+import VnAddressSelect from '../components/VnAddressSelect'
 import './Checkout.css'
 
 const CHECKOUT_PROFILE_KEY = 'checkout_profile_v1'
@@ -39,6 +40,7 @@ const Checkout = () => {
   const [paymentUrl, setPaymentUrl] = useState(null)
   const [submitError, setSubmitError] = useState(null)
   const [fieldErrors, setFieldErrors] = useState({})
+  const [shippingQuote, setShippingQuote] = useState({ fee: 0, provider: 'manual' })
 
   // Prefill thông tin từ account + lần nhập gần nhất.
   useEffect(() => {
@@ -119,7 +121,8 @@ const Checkout = () => {
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      const total = Math.max(0, getTotalPrice() - (appliedCoupon?.discount || 0))
+      const shippingFee = Math.max(0, Number(shippingQuote?.fee) || 0)
+      const total = Math.max(0, getTotalPrice() - (appliedCoupon?.discount || 0) + shippingFee)
       const res = await api.createOrder({
         customer: {
           name: formData.name,
@@ -127,13 +130,11 @@ const Checkout = () => {
           email: formData.email,
           address: [formData.address, formData.ward, formData.district, formData.city].filter(Boolean).join(', ')
         },
-        items: cartItems.map(({ id, name, brand, image, price, quantity }) => ({
+        items: cartItems.map(({ id, sku, quantity, addOn }) => ({
           id: Number(id),
-          name,
-          brand,
-          image: image || '',
-          price: Number(price),
-          quantity: Number(quantity) || 1
+          sku: String(sku || '').trim() || undefined,
+          quantity: Number(quantity) || 1,
+          addOn: addOn || undefined
         })),
         couponCode: appliedCoupon?.code || undefined,
         paymentMethod: formData.paymentMethod,
@@ -173,6 +174,19 @@ const Checkout = () => {
       setIsSubmitting(false)
     }
   }
+
+  useEffect(() => {
+    if (!authChecked) return
+    if (!formData.city || !formData.district || !formData.ward) return
+    api.getShippingQuote({
+      city: formData.city,
+      district: formData.district,
+      ward: formData.ward,
+      itemsCount: cartItems.length
+    })
+      .then((q) => setShippingQuote(q))
+      .catch(() => setShippingQuote({ fee: 0, provider: 'manual' }))
+  }, [authChecked, formData.city, formData.district, formData.ward, cartItems.length])
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -286,36 +300,12 @@ const Checkout = () => {
                       required
                     />
                   </div>
-                  <div className="form-group">
-                    <label>Tỉnh/Thành phố *</label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={formData.city}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Quận/Huyện *</label>
-                    <input
-                      type="text"
-                      name="district"
-                      value={formData.district}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Phường/Xã *</label>
-                    <input
-                      type="text"
-                      name="ward"
-                      value={formData.ward}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
+                  <VnAddressSelect
+                    city={formData.city}
+                    district={formData.district}
+                    ward={formData.ward}
+                    onChange={(patch) => setFormData((p) => ({ ...p, ...patch }))}
+                  />
                 </div>
               </div>
 
@@ -404,9 +394,19 @@ const Checkout = () => {
                 <span>Tạm tính:</span>
                 <span>{formatPrice(getTotalPrice())}</span>
               </div>
+              <div className="summary-row">
+                <span>Phí ship:</span>
+                <span>{formatPrice(Math.max(0, Number(shippingQuote?.fee) || 0))}</span>
+              </div>
+              {(appliedCoupon?.discount || 0) > 0 && (
+                <div className="summary-row">
+                  <span>Giảm giá ({appliedCoupon?.code}):</span>
+                  <span>-{formatPrice(appliedCoupon.discount || 0)}</span>
+                </div>
+              )}
               <div className="summary-row total">
                 <span>Tổng cộng:</span>
-                <span>{formatPrice(Math.max(0, getTotalPrice() - (appliedCoupon?.discount || 0)))}</span>
+                <span>{formatPrice(Math.max(0, getTotalPrice() - (appliedCoupon?.discount || 0) + (Number(shippingQuote?.fee) || 0)))}</span>
               </div>
             </div>
           </div>

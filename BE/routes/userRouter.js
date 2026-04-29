@@ -1,8 +1,11 @@
 import { Router } from 'express'
 import jwt from 'jsonwebtoken'
 import nodemailer from 'nodemailer'
+import rateLimit from 'express-rate-limit'
 import User from '../models/User.js'
 import { createToken, verifyToken } from '../middleware/auth.js'
+import { validateBody } from '../validation/validate.js'
+import { loginSchema, registerSchema } from '../validation/schemas.js'
 
 const router = Router()
 
@@ -54,8 +57,15 @@ const sendEmailVerification = async ({ to, name, token, baseUrl }) => {
   await transporter.sendMail({ from, to, subject, text, html })
 }
 
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
 // POST /api/user/register — công khai
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, validateBody(registerSchema), async (req, res) => {
   try {
     const { name, email, password } = req.body
     if (!name || !email || !password) {
@@ -112,7 +122,7 @@ router.post('/register', async (req, res) => {
 })
 
 // POST /api/user/login — công khai
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, validateBody(loginSchema), async (req, res) => {
   try {
     const { email, password } = req.body
     if (!email || !password) {

@@ -10,20 +10,28 @@ BE/
 │   └── dbConnect.js      # Kết nối MongoDB
 ├── models/
 │   ├── Product.js
-│   ├── Category.js
 │   ├── Order.js
-│   └── User.js           # Người dùng (buyer / admin)
+│   ├── Coupon.js
+│   ├── SiteConfig.js
+│   ├── OrderCounter.js
+│   └── User.js           # Người dùng (buyer / admin) + profile giao hàng
 ├── routes/
 │   ├── productRouter.js  # CRUD sản phẩm
 │   ├── userRouter.js     # Đăng ký, đăng nhập
 │   ├── orderRouter.js    # Đơn hàng
-│   └── categoryRouter.js
+│   ├── categoryRouter.js
+│   ├── couponRouter.js
+│   ├── siteConfigRouter.js
+│   ├── payosRouter.js
+│   └── chatRouter.js
 ├── middleware/
 │   └── auth.js           # JWT, kiểm tra quyền (admin)
 ├── seed/
-│   ├── index.js          # Chạy seed: products, categories, users
+│   ├── index.js          # Chạy seed: products, users
 │   ├── productsSeed.js   # Danh sách sản phẩm mẫu (đẩy vào DB)
 │   └── usersSeed.js      # Danh sách user mẫu (admin, buyer)
+├── scripts/
+│   └── makeAdmin.js       # Khôi phục / tạo admin (role=admin, emailVerified=true)
 ├── index.js              # Entry point
 ├── package.json
 └── .env.example
@@ -65,7 +73,6 @@ npm run seed
 ```
 
 - **productsSeed.js**: Xóa toàn bộ sản phẩm cũ, thêm 18 sản phẩm mẫu (để shop có hàng hiển thị).
-- **categoriesSeed** (trong index.js): Tạo 4 danh mục (Vợt, Giày, Áo, Phụ kiện) với số lượng theo products.
 - **usersSeed.js**: Tạo user mẫu nếu chưa tồn tại (không xóa user cũ):
 
 | Email | Mật khẩu | Vai trò |
@@ -88,19 +95,35 @@ npm run seed
 | GET | `/api/products` | Danh sách sản phẩm (`category`, `search`, `featured`) |
 | GET | `/api/products/:id` | Chi tiết sản phẩm |
 | GET | `/api/categories` | Danh mục |
-| POST | `/api/orders` | Tạo đơn hàng (checkout) — **không cần đăng nhập**, khách có thể mua trực tiếp |
-| POST | `/api/user/register` | Đăng ký (body: `name`, `email`, `password`) |
-| POST | `/api/user/login` | Đăng nhập (body: `email`, `password`) → trả về `token`, `user` |
+| GET | `/api/site-config` | Lấy cấu hình trang chủ |
+| GET | `/api/products/best-sellers` | Top bán chạy |
+| GET | `/api/products/newest` | Sản phẩm mới |
+| GET | `/api/products/discounted` | Đang giảm giá |
+| GET | `/api/products/related/:id` | Sản phẩm liên quan |
+| GET | `/api/coupons/validate` | Kiểm tra coupon |
+| POST | `/api/user/register` | Đăng ký (gửi email xác thực) |
+| GET | `/api/user/verify-email` | Xác thực email (trả JWT để auto login) |
+| POST | `/api/user/login` | Đăng nhập (chỉ cho phép khi emailVerified=true) |
 
 ### Cần auth (Header: `Authorization: Bearer <token>`)
 
 | Method | Endpoint | Quyền | Mô tả |
 |--------|----------|--------|--------|
 | GET | `/api/user/me` | bất kỳ user đã login | Lấy thông tin user hiện tại (để FE kiểm tra đã đăng nhập) |
+| PUT | `/api/user/me` | bất kỳ user đã login | Cập nhật profile (SĐT/địa chỉ) |
+| POST | `/api/orders` | buyer | Tạo đơn hàng (COD/PayOS) |
+| GET | `/api/orders/me` | buyer | Đơn hàng của tôi |
 | POST | `/api/products` | admin | Thêm sản phẩm |
 | PUT | `/api/products/:id` | admin | Sửa sản phẩm |
 | DELETE | `/api/products/:id` | admin | Xóa sản phẩm |
 | GET | `/api/orders` | admin | Danh sách đơn hàng |
+| PATCH | `/api/orders/:orderId/confirm` | admin | Xác nhận đơn COD |
+| PATCH | `/api/orders/:orderId/cancel` | admin | Hủy đơn (hoàn stock) |
+| GET | `/api/coupons` | admin | Danh sách coupon |
+| POST | `/api/coupons` | admin | Tạo coupon |
+| PUT | `/api/coupons/:code` | admin | Sửa coupon |
+| DELETE | `/api/coupons/:code` | admin | Xóa coupon |
+| PUT | `/api/site-config` | admin | Cập nhật cấu hình trang chủ |
 
 ## Ví dụ
 

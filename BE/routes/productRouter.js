@@ -7,6 +7,31 @@ const router = Router()
 const ONLY_CATEGORY = 'vot'
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
+const ensureDefaultVariant = (product) => {
+  const variants = Array.isArray(product?.variants) ? product.variants : []
+  if (variants.length > 0) return product
+  const legacyStock = Math.max(0, Number(product?.stock) || 0)
+  const sku = `P${product?.id ?? '0'}-DEFAULT`
+  return {
+    ...product,
+    variants: [{
+      sku,
+      attrs: { weight: '', grip: '' },
+      priceOverride: null,
+      stock: legacyStock,
+      inStock: legacyStock > 0
+    }],
+    stock: legacyStock,
+    inStock: legacyStock > 0
+  }
+}
+
+const deriveStockFromVariants = (product) => {
+  const variants = Array.isArray(product?.variants) ? product.variants : []
+  const totalStock = variants.reduce((sum, v) => sum + Math.max(0, Number(v?.stock) || 0), 0)
+  return { stock: totalStock, inStock: totalStock > 0 }
+}
+
 const normalizeProductBody = (body) => {
   const next = { ...body }
   const rawPrice = Number(next.price) || 0
@@ -34,7 +59,7 @@ const normalizeProductBody = (body) => {
 router.get('/', async (req, res) => {
   try {
     const { category, search, featured } = req.query
-    const filter = { category: ONLY_CATEGORY }
+    const filter = { category: ONLY_CATEGORY, isDeleted: { $ne: true } }
     if (category && category !== ONLY_CATEGORY) return res.json([])
     if (search) {
       const q = new RegExp(escapeRegex(search), 'i')
@@ -42,20 +67,36 @@ router.get('/', async (req, res) => {
     }
     if (featured === 'true') filter.id = { $in: [1, 2, 3, 4, 5, 6] }
 
-    const list = await Product.find(filter)
-      .select('id name brand category price originalPrice image images rating reviews sale stock inStock')
-      .lean()
+    const page = Math.max(1, Number(req.query.page) || 0)
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 0))
+    const usePaging = Boolean(req.query.page || req.query.limit)
 
-    const json = list.map(({ _id, __v, ...rest }) => {
+    const query = Product.find(filter)
+      .select('id name brand category price originalPrice image images rating reviews sale variants stock inStock')
+      .sort({ id: -1 })
+
+    const [list, total] = await Promise.all([
+      usePaging ? query.skip((page - 1) * limit).limit(limit).lean() : query.lean(),
+      usePaging ? Product.countDocuments(filter) : Promise.resolve(0)
+    ])
+
+    const json = list.map(({ _id, __v, ...rest0 }) => {
+      const rest = ensureDefaultVariant(rest0)
+      const derived = deriveStockFromVariants(rest)
       const images = Array.isArray(rest.images) ? rest.images : []
       const image = rest.image || images[0] || ''
       return {
         ...rest,
+        ...derived,
         image
       }
     })
 
-    res.json(json)
+    if (!usePaging) {
+      res.json(json)
+      return
+    }
+    res.json({ items: json, page, limit, total })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -80,17 +121,20 @@ router.get('/best-sellers', async (req, res) => {
     ])
 
     const ids = agg.map((x) => x._id).filter((x) => typeof x === 'number')
-    const products = await Product.find({ id: { $in: ids }, category: ONLY_CATEGORY })
-      .select('id name brand category price originalPrice image images rating reviews sale stock inStock')
+    const products = await Product.find({ id: { $in: ids }, category: ONLY_CATEGORY, isDeleted: { $ne: true } })
+      .select('id name brand category price originalPrice image images rating reviews sale variants stock inStock')
       .lean()
 
     const productMap = new Map(products.map((p) => [p.id, p]))
     const json = agg
       .map((x) => {
-        const p = productMap.get(x._id)
+        const p0 = productMap.get(x._id)
+        const p = p0 ? ensureDefaultVariant(p0) : null
         if (!p) return null
+        const derived = deriveStockFromVariants(p)
         return {
           ...p,
+          ...derived,
           unitsSold: x.unitsSold || 0,
           revenue: x.revenue || 0
         }
@@ -107,16 +151,18 @@ router.get('/best-sellers', async (req, res) => {
 router.get('/newest', async (req, res) => {
   try {
     const limit = Math.max(1, Number(req.query.limit) || 8)
-    const list = await Product.find({ category: ONLY_CATEGORY })
+    const list = await Product.find({ category: ONLY_CATEGORY, isDeleted: { $ne: true } })
       .sort({ id: -1 })
       .limit(limit)
-      .select('id name brand category price originalPrice image images rating reviews sale stock inStock')
+      .select('id name brand category price originalPrice image images rating reviews sale variants stock inStock')
       .lean()
 
-    const json = list.map(({ _id, __v, ...rest }) => {
+    const json = list.map(({ _id, __v, ...rest0 }) => {
+      const rest = ensureDefaultVariant(rest0)
+      const derived = deriveStockFromVariants(rest)
       const images = Array.isArray(rest.images) ? rest.images : []
       const image = rest.image || images[0] || ''
-      return { ...rest, image }
+      return { ...rest, ...derived, image }
     })
     res.json(json)
   } catch (err) {
@@ -128,16 +174,18 @@ router.get('/newest', async (req, res) => {
 router.get('/discounted', async (req, res) => {
   try {
     const limit = Math.max(1, Number(req.query.limit) || 8)
-    const list = await Product.find({ category: ONLY_CATEGORY, sale: true })
+    const list = await Product.find({ category: ONLY_CATEGORY, sale: true, isDeleted: { $ne: true } })
       .sort({ id: -1 })
       .limit(limit)
-      .select('id name brand category price originalPrice image images rating reviews sale stock inStock')
+      .select('id name brand category price originalPrice image images rating reviews sale variants stock inStock')
       .lean()
 
-    const json = list.map(({ _id, __v, ...rest }) => {
+    const json = list.map(({ _id, __v, ...rest0 }) => {
+      const rest = ensureDefaultVariant(rest0)
+      const derived = deriveStockFromVariants(rest)
       const images = Array.isArray(rest.images) ? rest.images : []
       const image = rest.image || images[0] || ''
-      return { ...rest, image }
+      return { ...rest, ...derived, image }
     })
     res.json(json)
   } catch (err) {
@@ -158,11 +206,12 @@ router.get('/related/:id', async (req, res) => {
     const primary = await Product.find({
       category: ONLY_CATEGORY,
       brand: base.brand,
-      id: { $ne: base.id }
+      id: { $ne: base.id },
+      isDeleted: { $ne: true }
     })
       .sort({ id: -1 })
       .limit(limit)
-      .select('id name brand category price originalPrice image images rating reviews sale stock inStock')
+      .select('id name brand category price originalPrice image images rating reviews sale variants stock inStock')
       .lean()
 
     let list = primary
@@ -170,19 +219,22 @@ router.get('/related/:id', async (req, res) => {
       const existingIds = primary.map((p) => p.id)
       const extra = await Product.find({
         category: ONLY_CATEGORY,
-        id: { $ne: base.id, $nin: existingIds }
+        id: { $ne: base.id, $nin: existingIds },
+        isDeleted: { $ne: true }
       })
         .sort({ id: -1 })
         .limit(limit - primary.length)
-        .select('id name brand category price originalPrice image images rating reviews sale stock inStock')
+        .select('id name brand category price originalPrice image images rating reviews sale variants stock inStock')
         .lean()
       list = [...primary, ...extra]
     }
 
-    const json = list.map(({ _id, __v, ...rest }) => {
+    const json = list.map(({ _id, __v, ...rest0 }) => {
+      const rest = ensureDefaultVariant(rest0)
+      const derived = deriveStockFromVariants(rest)
       const images = Array.isArray(rest.images) ? rest.images : []
       const image = rest.image || images[0] || ''
-      return { ...rest, image }
+      return { ...rest, ...derived, image }
     })
 
     res.json(json)
@@ -196,9 +248,12 @@ router.get('/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10)
     if (Number.isNaN(id)) return res.status(400).json({ error: 'ID không hợp lệ' })
-    const product = await Product.findOne({ id }).lean()
+    const product0 = await Product.findOne({ id, isDeleted: { $ne: true } }).lean()
+    const product = product0 ? ensureDefaultVariant(product0) : null
     if (!product) return res.status(404).json({ error: 'Không tìm thấy sản phẩm' })
-    const { _id, __v, ...rest } = product
+    const { _id, __v, ...rest0 } = product
+    const derived = deriveStockFromVariants(rest0)
+    const rest = { ...rest0, ...derived }
     if (!rest.images?.length) rest.images = [rest.image, rest.image, rest.image]
     res.json(rest)
   } catch (err) {
@@ -216,7 +271,10 @@ router.post('/', verifyToken, requireRole('admin'), async (req, res) => {
     }
     const max = await Product.findOne().sort({ id: -1 }).select('id').lean()
     const nextId = (max?.id ?? 0) + 1
-    const product = await Product.create({ ...body, id: nextId })
+    // Nếu FE chưa gửi variants thì tạo variant mặc định từ stock legacy.
+    const withVariants = ensureDefaultVariant({ ...body, id: nextId })
+    const derived = deriveStockFromVariants(withVariants)
+    const product = await Product.create({ ...withVariants, ...derived })
     const { _id, __v, ...rest } = product.toObject()
     res.status(201).json(rest)
   } catch (err) {
@@ -231,9 +289,11 @@ router.put('/:id', verifyToken, requireRole('admin'), async (req, res) => {
     if (Number.isNaN(id)) return res.status(400).json({ error: 'ID không hợp lệ' })
     const body = normalizeProductBody(req.body)
     delete body.id // không cho phép đổi id sản phẩm
+    const withVariants = ensureDefaultVariant(body)
+    const derived = deriveStockFromVariants(withVariants)
     const product = await Product.findOneAndUpdate(
       { id },
-      { $set: body },
+      { $set: { ...withVariants, ...derived } },
       { new: true, runValidators: true }
     ).lean()
     if (!product) return res.status(404).json({ error: 'Không tìm thấy sản phẩm' })
@@ -244,14 +304,14 @@ router.put('/:id', verifyToken, requireRole('admin'), async (req, res) => {
   }
 })
 
-// DELETE /api/products/:id — xóa (admin)
+// DELETE /api/products/:id — soft delete (admin)
 router.delete('/:id', verifyToken, requireRole('admin'), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10)
     if (Number.isNaN(id)) return res.status(400).json({ error: 'ID không hợp lệ' })
-    const result = await Product.findOneAndDelete({ id })
+    const result = await Product.findOneAndUpdate({ id }, { $set: { isDeleted: true } }, { new: true }).lean()
     if (!result) return res.status(404).json({ error: 'Không tìm thấy sản phẩm' })
-    res.json({ message: 'Đã xóa sản phẩm' })
+    res.json({ message: 'Đã ẩn sản phẩm (soft delete)' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

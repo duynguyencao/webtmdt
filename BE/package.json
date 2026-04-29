@@ -8,7 +8,8 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "seed": "node seed/index.js",
-    "make-admin": "node scripts/makeAdmin.js"
+    "make-admin": "node scripts/makeAdmin.js",
+    "migrate:variants": "node scripts/migrateProductVariants.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -17,8 +18,11 @@
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.18.2",
+    "express-rate-limit": "^8.4.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.0.3",
-    "nodemailer": "^8.0.7"
+    "node-cron": "^4.2.1",
+    "nodemailer": "^8.0.7",
+    "zod": "^4.3.6"
   }
 }

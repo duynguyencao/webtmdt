@@ -1,5 +1,4 @@
 import Product from '../models/Product.js'
-import Category from '../models/Category.js'
 
 /** Giới hạn số sản phẩm đưa vào prompt để tránh vượt token Gemini */
 const MAX_PRODUCTS_IN_CONTEXT = 150
@@ -9,12 +8,11 @@ const MAX_PRODUCTS_IN_CONTEXT = 150
  * Giới hạn mô tả để không vượt quá token.
  */
 export async function getProductContextForChat() {
-  const [products, categories] = await Promise.all([
+  const [products] = await Promise.all([
     Product.find().select('id name brand category price originalPrice sale description').lean().limit(MAX_PRODUCTS_IN_CONTEXT),
-    Category.find().select('name path').lean()
   ])
 
-  const categoryList = categories.map((c) => `- ${c.name} (path: ${c.path})`).join('\n')
+  const categoryList = `- Vợt Cầu Lông (path: /products)`
 
   const productLines = products.map((p) => {
     const desc = p.description ? String(p.description).slice(0, 200) : ''

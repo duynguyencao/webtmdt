@@ -5,8 +5,21 @@ import Coupon from '../models/Coupon.js'
 import { verifyToken, requireRole } from '../middleware/auth.js'
 import { PayOS } from '@payos/node'
 import OrderCounter from '../models/OrderCounter.js'
+import mongoose from 'mongoose'
+import rateLimit from 'express-rate-limit'
+import { validateBody } from '../validation/validate.js'
+import { orderCreateSchema } from '../validation/schemas.js'
 
 const router = Router()
+
+const defaultSkuForProductId = (productId) => `P${productId}-DEFAULT`
+
+const orderLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 15,
+  standardHeaders: true,
+  legacyHeaders: false
+})
 
 const createPayOSClient = () => {
   const clientId = String(process.env.PAYOS_CLIENT_ID || '').trim()
@@ -26,7 +39,7 @@ const getReturnCancelUrls = (req, orderId) => {
 }
 
 // POST /api/orders — đặt hàng (bắt buộc đăng nhập, lưu userId)
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', orderLimiter, verifyToken, validateBody(orderCreateSchema), async (req, res) => {
   try {
     const { customer, items, paymentMethod, note, couponCode } = req.body
     if (!customer || !items || !Array.isArray(items) || items.length === 0) {
@@ -39,41 +52,6 @@ router.post('/', verifyToken, async (req, res) => {
     if (!['cod', 'payos'].includes(method)) {
       return res.status(400).json({ error: 'Phương thức thanh toán chỉ hỗ trợ: cod, payos' })
     }
-    let subtotal = 0
-    const normalizedItems = []
-    for (const item of items) {
-      const productId = item.id != null ? Number(item.id) : null
-      if (productId == null) continue
-      const product = await Product.findOne({ id: productId })
-      if (!product) continue
-      const qty = Math.max(1, Number(item.quantity) || 1)
-      subtotal += (Number(product.price) || 0) * qty
-      normalizedItems.push({
-        id: product.id,
-        name: product.name,
-        brand: product.brand,
-        image: product.image || '',
-        price: Number(product.price) || 0,
-        quantity: qty
-      })
-    }
-    if (!normalizedItems.length) {
-      return res.status(400).json({ error: 'Không có sản phẩm hợp lệ để đặt hàng' })
-    }
-    let discount = 0
-    let couponUsed = null
-    let couponDoc = null
-    if (couponCode) {
-      const code = String(couponCode).trim().toUpperCase()
-      const coupon = await Coupon.findOne({ code })
-      if (!coupon) return res.status(400).json({ error: 'Mã giảm giá không tồn tại' })
-      const availability = coupon.isAvailable(subtotal)
-      if (!availability.ok) return res.status(400).json({ error: availability.reason })
-      discount = coupon.calcDiscount(subtotal)
-      couponUsed = code
-      couponDoc = coupon
-    }
-    const orderTotal = Math.max(0, subtotal - discount)
 
     // Sinh orderId an toàn, tránh trùng do race condition (trước đây dùng countDocuments()).
     const last = await Order.findOne({ orderId: /^ORD\d+$/ }).sort({ orderId: -1 }).select('orderId').lean()
@@ -93,53 +71,131 @@ router.post('/', verifyToken, async (req, res) => {
     )
 
     const orderId = `ORD${String(counter?.seq ?? lastSeq + 1).padStart(6, '0')}`
-    // Đơn PayOS: chờ webhook cập nhật thanh toán
     const paymentStatus = method === 'payos' ? 'pending_payment' : null
-    for (const item of items) {
-      const productId = item.id != null ? Number(item.id) : null
-      if (productId == null) continue
-      const product = await Product.findOne({ id: productId })
-      if (!product) continue
-      const qty = Math.max(0, Number(item.quantity) || 0)
-      if ((product.stock ?? 0) < qty) {
-        return res.status(400).json({ error: `Sản phẩm "${product.name}" chỉ còn ${product.stock ?? 0}, không đủ ${qty}` })
+
+    const session = await mongoose.startSession()
+    let createdOrder = null
+    let normalizedItems = []
+    let subtotal = 0
+    let discount = 0
+    let couponUsed = null
+    let couponDoc = null
+    const initialStatus = 'pending'
+
+    const run = async () => {
+      subtotal = 0
+      normalizedItems = []
+
+      for (const item of items) {
+        const productId = item?.id != null ? Number(item.id) : null
+        if (productId == null) continue
+        const sku = String(item?.sku || '').trim() || defaultSkuForProductId(productId)
+        const qty = Math.max(1, Math.floor(Number(item?.quantity) || 1))
+
+        const product = await Product.findOne({ id: productId, isDeleted: { $ne: true } }).session(session)
+        if (!product) continue
+        const variants = Array.isArray(product.variants) ? product.variants : []
+        const variant = variants.find((v) => String(v.sku || '').trim() === sku)
+        if (!variant) {
+          throw new Error(`Biến thể (SKU) không tồn tại cho sản phẩm "${product.name}"`)
+        }
+        const unitPrice = variant.priceOverride != null ? Number(variant.priceOverride) || 0 : (Number(product.price) || 0)
+
+        // Add-on đan cước (tuỳ chọn)
+        let addOn = null
+        if (item?.addOn && product.stringingAddOn?.enabled) {
+          const stringId = String(item.addOn.stringId || '').trim()
+          const tensionKg = Number(item.addOn.tensionKg) || 0
+          const list = Array.isArray(product.stringingAddOn?.strings) ? product.stringingAddOn.strings : []
+          const picked = list.find((s) => String(s.id || '').trim() === stringId)
+          if (!picked) throw new Error('Loại cước không hợp lệ')
+          addOn = {
+            stringId,
+            stringName: String(picked.name || ''),
+            tensionKg,
+            price: Math.max(0, Number(picked.price) || 0)
+          }
+        }
+
+        subtotal += unitPrice * qty + (addOn ? (addOn.price * qty) : 0)
+        normalizedItems.push({
+          id: product.id,
+          sku,
+          name: product.name,
+          brand: product.brand,
+          image: product.image || '',
+          price: unitPrice,
+          quantity: qty,
+          addOn: addOn || undefined
+        })
+      }
+
+      if (!normalizedItems.length) {
+        throw new Error('Không có sản phẩm hợp lệ để đặt hàng')
+      }
+
+      if (couponCode) {
+        const code = String(couponCode).trim().toUpperCase()
+        const coupon = await Coupon.findOne({ code }).session(session)
+        if (!coupon) throw new Error('Mã giảm giá không tồn tại')
+        const availability = coupon.isAvailable(subtotal)
+        if (!availability.ok) throw new Error(availability.reason)
+        discount = coupon.calcDiscount(subtotal)
+        couponUsed = code
+        couponDoc = coupon
+      }
+
+      // Trừ tồn kho atomically theo SKU (chống oversell)
+      for (const it of normalizedItems) {
+        const qty = Math.max(1, Math.floor(Number(it.quantity) || 1))
+        const sku = String(it.sku || '').trim() || defaultSkuForProductId(it.id)
+        const r = await Product.updateOne(
+          { id: it.id, isDeleted: { $ne: true }, variants: { $elemMatch: { sku, stock: { $gte: qty } } } },
+          { $inc: { 'variants.$.stock': -qty } }
+        ).session(session)
+        if (!r?.modifiedCount) {
+          throw new Error(`Biến thể "${sku}" đã hết hàng hoặc không đủ số lượng`)
+        }
+      }
+
+      const orderTotal = Math.max(0, subtotal - discount)
+
+      createdOrder = await Order.create([{
+        orderId,
+        userId: req.userId,
+        customer: customer || {},
+        items: normalizedItems,
+        subtotal,
+        discount,
+        couponCode: couponUsed,
+        total: orderTotal,
+        paymentMethod: method,
+        paymentStatus,
+        note: note || '',
+        status: initialStatus
+      }], { session }).then((arr) => arr[0])
+
+      if (couponDoc && method !== 'payos') {
+        couponDoc.usedCount = (couponDoc.usedCount || 0) + 1
+        await couponDoc.save({ session })
+        createdOrder.couponConsumed = true
+        await createdOrder.save({ session })
       }
     }
-    for (const item of items) {
-      const productId = item.id != null ? Number(item.id) : null
-      if (productId == null) continue
-      const product = await Product.findOne({ id: productId })
-      if (!product) continue
-      const qty = Math.max(0, Number(item.quantity) || 0)
-      const newStock = Math.max(0, (product.stock ?? 0) - qty)
-      product.stock = newStock
-      product.inStock = newStock > 0
-      await product.save()
-    }
-    // COD và PayOS đều bắt đầu ở trạng thái "pending" để admin xác nhận.
-    const initialStatus = 'pending'
-    const createdOrder = await Order.create({
-      orderId,
-      userId: req.userId,
-      customer: customer || {},
-      items: normalizedItems,
-      subtotal,
-      discount,
-      couponCode: couponUsed,
-      total: orderTotal,
-      paymentMethod: method,
-      paymentStatus,
-      note: note || '',
-      status: initialStatus
-    })
 
-    if (couponDoc && method !== 'payos') {
-      // Với COD: thanh toán gần như ngay => tính lượt dùng coupon ngay.
-      couponDoc.usedCount = (couponDoc.usedCount || 0) + 1
-      await couponDoc.save()
-      createdOrder.couponConsumed = true
-      await createdOrder.save()
+    // Transaction nếu môi trường hỗ trợ; nếu không thì vẫn chạy (atomic update) nhưng không full-transaction.
+    try {
+      await session.withTransaction(async () => run())
+    } catch (err) {
+      const msg = String(err?.message || '')
+      const isTxnUnsupported = msg.includes('Transaction') || msg.includes('replica set') || msg.includes('not supported')
+      if (!isTxnUnsupported) throw err
+      await run()
+    } finally {
+      session.endSession()
     }
+
+    const orderTotal = createdOrder?.total ?? Math.max(0, subtotal - discount)
 
     if (method !== 'payos') {
       res.status(201).json({ orderId, message: 'Đặt hàng thành công. Đang chờ admin xác nhận (COD).' })
@@ -158,7 +214,7 @@ router.post('/', verifyToken, async (req, res) => {
         orderCode: payosOrderCode,
         amount: Math.round(orderTotal),
         description: orderId,
-        items: normalizedItems.map((it) => ({
+        items: (normalizedItems || []).map((it) => ({
           name: it.name,
           quantity: it.quantity,
           price: Math.round(it.price)
@@ -195,13 +251,25 @@ router.get('/me', (req, res, next) => {
   next()
 }, verifyToken, async (req, res) => {
   try {
-    const list = await Order.find({ userId: req.userId }).sort({ createdAt: -1 }).lean()
+    const page = Math.max(1, Number(req.query.page) || 0)
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 0))
+    const usePaging = Boolean(req.query.page || req.query.limit)
+
+    const baseQuery = Order.find({ userId: req.userId }).sort({ createdAt: -1 })
+    const [list, total] = await Promise.all([
+      usePaging ? baseQuery.skip((page - 1) * limit).limit(limit).lean() : baseQuery.lean(),
+      usePaging ? Order.countDocuments({ userId: req.userId }) : Promise.resolve(0)
+    ])
     const json = list.map(({ _id, __v, userId, ...rest }) => ({
       ...rest,
       status: rest.status || 'pending',
       paymentStatus: rest.paymentStatus ?? null
     }))
-    res.json(json)
+    if (!usePaging) {
+      res.json(json)
+      return
+    }
+    res.json({ items: json, page, limit, total })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -262,12 +330,13 @@ router.patch('/:orderId/cancel', verifyToken, requireRole('admin'), async (req, 
     for (const item of (order.items || [])) {
       const productId = item.id != null ? Number(item.id) : null
       if (productId == null) continue
-      const product = await Product.findOne({ id: productId })
-      if (!product) continue
       const qty = Math.max(0, Number(item.quantity) || 0)
-      product.stock = (product.stock ?? 0) + qty
-      product.inStock = true
-      await product.save()
+      if (!qty) continue
+      const sku = String(item.sku || '').trim() || defaultSkuForProductId(productId)
+      await Product.updateOne(
+        { id: productId, isDeleted: { $ne: true }, 'variants.sku': sku },
+        { $inc: { 'variants.$.stock': qty } }
+      )
     }
     order.status = 'cancelled'
     await order.save()
@@ -307,12 +376,13 @@ router.patch('/:orderId/cancel-by-buyer', verifyToken, async (req, res) => {
     for (const item of (order.items || [])) {
       const productId = item.id != null ? Number(item.id) : null
       if (productId == null) continue
-      const product = await Product.findOne({ id: productId })
-      if (!product) continue
       const qty = Math.max(0, Number(item.quantity) || 0)
-      product.stock = (product.stock ?? 0) + qty
-      product.inStock = true
-      await product.save()
+      if (!qty) continue
+      const sku = String(item.sku || '').trim() || defaultSkuForProductId(productId)
+      await Product.updateOne(
+        { id: productId, isDeleted: { $ne: true }, 'variants.sku': sku },
+        { $inc: { 'variants.$.stock': qty } }
+      )
     }
     order.status = 'cancelled'
     await order.save()
@@ -348,9 +418,21 @@ router.get('/', verifyToken, requireRole('admin'), async (req, res) => {
     if (req.query.orderId && String(req.query.orderId).trim()) {
       filter.orderId = new RegExp(String(req.query.orderId).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
     }
-    const list = await Order.find(filter).sort({ createdAt: -1 }).lean()
+    const page = Math.max(1, Number(req.query.page) || 0)
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 0))
+    const usePaging = Boolean(req.query.page || req.query.limit)
+
+    const baseQuery = Order.find(filter).sort({ createdAt: -1 })
+    const [list, total] = await Promise.all([
+      usePaging ? baseQuery.skip((page - 1) * limit).limit(limit).lean() : baseQuery.lean(),
+      usePaging ? Order.countDocuments(filter) : Promise.resolve(0)
+    ])
     const json = list.map(({ _id, __v, ...rest }) => ({ ...rest, status: rest.status || 'pending', paymentStatus: rest.paymentStatus ?? null }))
-    res.json(json)
+    if (!usePaging) {
+      res.json(json)
+      return
+    }
+    res.json({ items: json, page, limit, total })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

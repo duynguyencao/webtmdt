@@ -16,13 +16,21 @@ import chatRouter from './routes/chatRouter.js'
 import couponRouter from './routes/couponRouter.js'
 import siteConfigRouter from './routes/siteConfigRouter.js'
 import payosRouter from './routes/payosRouter.js'
+import cartRouter from './routes/cartRouter.js'
+import { startAutoCancelPendingPayOSJob } from './jobs/autoCancelPendingPayOS.js'
+import reviewRouter from './routes/reviewRouter.js'
+import shippingRouter from './routes/shippingRouter.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
 
 let dbReady = false
 connectDB()
-  .then(() => { dbReady = true })
+  .then(() => {
+    dbReady = true
+    // Cron job: hủy đơn PayOS pending quá hạn và hoàn kho
+    startAutoCancelPendingPayOSJob()
+  })
   .catch((err) => {
     console.error('Không thể kết nối MongoDB. Chạy MongoDB và thử lại.', err.message)
   })
@@ -49,6 +57,9 @@ app.use('/api/categories', categoryRouter)
 app.use('/api/coupons', couponRouter)
 app.use('/api/site-config', siteConfigRouter)
 app.use('/api/payos', payosRouter)
+app.use('/api/cart', cartRouter)
+app.use('/api/reviews', reviewRouter)
+app.use('/api/shipping', shippingRouter)
 // Chatbot cần DB để lấy danh sách sản phẩm — nếu DB chưa kết nối thì báo lỗi rõ
 app.use('/api/chat', (req, res, next) => {
   if (!dbReady) {
