@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { FiFilter, FiX } from 'react-icons/fi'
 import ProductCard from '../components/ProductCard'
@@ -12,13 +12,25 @@ const Products = () => {
   const [showFilters, setShowFilters] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [priceBounds, setPriceBounds] = useState({ min: 0, max: 0 })
   const [filters, setFilters] = useState({
-    category: searchParams.get('category') || '',
     search: searchParams.get('search') || '',
     brand: '',
-    priceRange: '',
+    minPrice: 0,
+    maxPrice: 0,
+    saleOnly: searchParams.get('sale') === 'true',
     sort: 'newest'
   })
+  const [activePriceThumb, setActivePriceThumb] = useState(null) // 'min' | 'max' | null
+  const priceTrackRef = useRef(null)
+
+  useEffect(() => {
+    setFilters((prev) => ({
+      ...prev,
+      search: searchParams.get('search') || '',
+      saleOnly: searchParams.get('sale') === 'true'
+    }))
+  }, [searchParams])
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -26,6 +38,15 @@ const Products = () => {
         setLoading(true)
         const data = await api.getProducts()
         setProducts(data)
+        const prices = data.map((p) => Number(p.price) || 0)
+        const min = prices.length ? Math.min(...prices) : 0
+        const max = prices.length ? Math.max(...prices) : 0
+        setPriceBounds({ min, max })
+        setFilters((prev) => ({
+          ...prev,
+          minPrice: min,
+          maxPrice: max
+        }))
       } catch (err) {
         setError(err.message)
       } finally {
@@ -35,18 +56,9 @@ const Products = () => {
     fetchProducts()
   }, [])
 
-  useEffect(() => {
-    setFilters((f) => ({
-      ...f,
-      category: searchParams.get('category') || '',
-      search: searchParams.get('search') || ''
-    }))
-  }, [searchParams])
 
   useEffect(() => {
     let filtered = [...products]
-
-    if (filters.category) filtered = filtered.filter(p => p.category === filters.category)
     if (filters.search) {
       const q = filters.search.toLowerCase().trim()
       filtered = filtered.filter(p =>
@@ -55,10 +67,11 @@ const Products = () => {
       )
     }
     if (filters.brand) filtered = filtered.filter(p => p.brand === filters.brand)
-    if (filters.priceRange) {
-      const [min, max] = filters.priceRange.split('-').map(Number)
-      filtered = filtered.filter(p => (max ? p.price >= min && p.price <= max : p.price >= min))
-    }
+    if (filters.saleOnly) filtered = filtered.filter((p) => p.sale === true)
+    filtered = filtered.filter((p) => {
+      const price = Number(p.price) || 0
+      return price >= filters.minPrice && price <= filters.maxPrice
+    })
     switch (filters.sort) {
       case 'price-low': filtered.sort((a, b) => a.price - b.price); break
       case 'price-high': filtered.sort((a, b) => b.price - a.price); break
@@ -68,7 +81,44 @@ const Products = () => {
     setFilteredProducts(filtered)
   }, [filters, products])
 
-  const brands = [...new Set(products.map(p => p.brand))]
+  const brands = [...new Set(products.map(p => p.brand).filter(Boolean))]
+  const formatVND = (n) => `${new Intl.NumberFormat('vi-VN').format(Number(n) || 0)}đ`
+
+  const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
+
+  const getValueFromClientX = (clientX) => {
+    const el = priceTrackRef.current
+    if (!el) return filters.minPrice
+    const rect = el.getBoundingClientRect()
+    const ratio = rect.width ? (clientX - rect.left) / rect.width : 0
+    const raw = priceBounds.min + ratio * (priceBounds.max - priceBounds.min)
+    // Giá là số thực tế trong DB, nên lấy số nguyên để tương thích logic lọc
+    return clamp(Math.round(raw), priceBounds.min, priceBounds.max)
+  }
+
+  useEffect(() => {
+    if (!activePriceThumb) return
+    const onMove = (e) => {
+      const nextVal = getValueFromClientX(e.clientX)
+      setFilters((prev) => {
+        if (activePriceThumb === 'min') {
+          return { ...prev, minPrice: Math.min(nextVal, prev.maxPrice) }
+        }
+        return { ...prev, maxPrice: Math.max(nextVal, prev.minPrice) }
+      })
+    }
+    const onUp = () => setActivePriceThumb(null)
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [activePriceThumb, priceBounds.min, priceBounds.max])
+
+  const priceRangeDenom = Math.max(1, priceBounds.max - priceBounds.min)
+  const minPct = ((filters.minPrice - priceBounds.min) / priceRangeDenom) * 100
+  const maxPct = ((filters.maxPrice - priceBounds.min) / priceRangeDenom) * 100
 
   return (
     <div className="products-page">
@@ -106,82 +156,6 @@ const Products = () => {
             </div>
 
             <div className="filter-group">
-              <h3 className="filter-title">Danh mục</h3>
-              <div className="filter-options">
-                <label>
-                  <input
-                    type="radio"
-                    name="category"
-                    value=""
-                    checked={filters.category === ''}
-                    onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                  />
-                  Tất cả
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="category"
-                    value="vot"
-                    checked={filters.category === 'vot'}
-                    onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                  />
-                  Vợt Cầu Lông
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="category"
-                    value="giay"
-                    checked={filters.category === 'giay'}
-                    onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                  />
-                  Giày Cầu Lông
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="category"
-                    value="ao"
-                    checked={filters.category === 'ao'}
-                    onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                  />
-                  Áo Cầu Lông
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="category"
-                    value="quan"
-                    checked={filters.category === 'quan'}
-                    onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                  />
-                  Quần Cầu Lông
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="category"
-                    value="tui"
-                    checked={filters.category === 'tui'}
-                    onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                  />
-                  Túi Vợt
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="category"
-                    value="phu-kien"
-                    checked={filters.category === 'phu-kien'}
-                    onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                  />
-                  Phụ Kiện
-                </label>
-              </div>
-            </div>
-
-            <div className="filter-group">
               <h3 className="filter-title">Thương hiệu</h3>
               <div className="filter-options">
                 <label>
@@ -211,63 +185,70 @@ const Products = () => {
 
             <div className="filter-group">
               <h3 className="filter-title">Khoảng giá</h3>
-              <div className="filter-options">
-                <label>
-                  <input
-                    type="radio"
-                    name="priceRange"
-                    value=""
-                    checked={filters.priceRange === ''}
-                    onChange={(e) => setFilters({ ...filters, priceRange: e.target.value })}
-                  />
-                  Tất cả
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="priceRange"
-                    value="0-1000000"
-                    checked={filters.priceRange === '0-1000000'}
-                    onChange={(e) => setFilters({ ...filters, priceRange: e.target.value })}
-                  />
-                  Dưới 1 triệu
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="priceRange"
-                    value="1000000-3000000"
-                    checked={filters.priceRange === '1000000-3000000'}
-                    onChange={(e) => setFilters({ ...filters, priceRange: e.target.value })}
-                  />
-                  1 - 3 triệu
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="priceRange"
-                    value="3000000-5000000"
-                    checked={filters.priceRange === '3000000-5000000'}
-                    onChange={(e) => setFilters({ ...filters, priceRange: e.target.value })}
-                  />
-                  3 - 5 triệu
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="priceRange"
-                    value="5000000-999999999"
-                    checked={filters.priceRange === '5000000-999999999'}
-                    onChange={(e) => setFilters({ ...filters, priceRange: e.target.value })}
-                  />
-                  Trên 5 triệu
-                </label>
+              <div className="price-slider-group">
+                <div className="price-slider-values">
+                  <span>Từ: {formatVND(filters.minPrice)}</span>
+                  <span>Đến: {formatVND(filters.maxPrice)}</span>
+                </div>
+                <div
+                  className="price-dual-slider"
+                  role="group"
+                  aria-label="Chọn khoảng giá"
+                >
+                  <div
+                    ref={priceTrackRef}
+                    className="price-dual-track"
+                    onPointerDown={(e) => {
+                      const nextVal = getValueFromClientX(e.clientX)
+                      const distToMin = Math.abs(nextVal - filters.minPrice)
+                      const distToMax = Math.abs(nextVal - filters.maxPrice)
+                      const nextThumb = distToMin <= distToMax ? 'min' : 'max'
+                      setActivePriceThumb(nextThumb)
+                      setFilters((prev) => {
+                        if (nextThumb === 'min') {
+                          return { ...prev, minPrice: Math.min(nextVal, prev.maxPrice) }
+                        }
+                        return { ...prev, maxPrice: Math.max(nextVal, prev.minPrice) }
+                      })
+                    }}
+                  >
+                    <div className="price-dual-range" style={{ left: `${minPct}%`, width: `${Math.max(0, maxPct - minPct)}%` }} />
+
+                    <button
+                      type="button"
+                      className={`price-dual-thumb ${activePriceThumb === 'min' ? 'active' : ''}`}
+                      style={{ left: `${minPct}%` }}
+                      onPointerDown={(e) => {
+                        e.preventDefault()
+                        setActivePriceThumb('min')
+                      }}
+                      aria-label="Kéo giá thấp"
+                    />
+                    <button
+                      type="button"
+                      className={`price-dual-thumb ${activePriceThumb === 'max' ? 'active' : ''}`}
+                      style={{ left: `${maxPct}%` }}
+                      onPointerDown={(e) => {
+                        e.preventDefault()
+                        setActivePriceThumb('max')
+                      }}
+                      aria-label="Kéo giá cao"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
             <button
               className="clear-filters"
-              onClick={() => setFilters({ category: '', search: '', brand: '', priceRange: '', sort: 'newest' })}
+              onClick={() => setFilters({
+                search: '',
+                brand: '',
+                minPrice: priceBounds.min,
+                maxPrice: priceBounds.max,
+                saleOnly: false,
+                sort: 'newest'
+              })}
             >
               Xóa bộ lọc
             </button>

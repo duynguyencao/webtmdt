@@ -1,18 +1,28 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FiSearch, FiShoppingCart, FiUser, FiMenu, FiX, FiLogOut } from 'react-icons/fi'
 import { useCart } from '../context/CartContext'
 import { api } from '../api/client'
 import './Header.css'
 
-const Header = () => {
+const CATEGORIES = [
+  { name: 'Vợt Cầu Lông', path: '/products?category=vot' }
+]
+
+const Header = ({ user: userProp }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(userProp ?? null)
+  const [availableCategoryValues, setAvailableCategoryValues] = useState([])
   const { getTotalItems } = useCart()
   const navigate = useNavigate()
 
   useEffect(() => {
+    if (userProp !== undefined) {
+      setUser(userProp)
+      return
+    }
+
     if (api.getToken()) {
       api.getMe()
         .then((data) => setUser(data))
@@ -23,6 +33,14 @@ const Header = () => {
     } else {
       setUser(null)
     }
+  }, [userProp])
+
+  useEffect(() => {
+    api.getCategories()
+      .then((list) => {
+        setAvailableCategoryValues((list || []).map((item) => item.value).filter(Boolean))
+      })
+      .catch(() => {})
   }, [])
 
   const handleLogout = () => {
@@ -31,15 +49,13 @@ const Header = () => {
     navigate('/')
   }
 
-  const categories = [
-    { name: 'Vợt Cầu Lông', path: '/products?category=vot' },
-    { name: 'Giày Cầu Lông', path: '/products?category=giay' },
-    { name: 'Áo Cầu Lông', path: '/products?category=ao' },
-    { name: 'Quần Cầu Lông', path: '/products?category=quan' },
-    { name: 'Túi Vợt', path: '/products?category=tui' },
-    { name: 'Balo', path: '/products?category=balo' },
-    { name: 'Phụ Kiện', path: '/products?category=phu-kien' },
-  ]
+  const visibleCategories = useMemo(
+    () => CATEGORIES.filter((cat) => {
+      const categoryKey = cat.path.split('category=')[1]
+      return !categoryKey || availableCategoryValues.includes(categoryKey)
+    }),
+    [availableCategoryValues]
+  )
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -48,6 +64,8 @@ const Header = () => {
       setSearchQuery('')
     }
   }
+
+  const isAdmin = user?.role === 'admin'
 
   return (
     <header className="header">
@@ -63,13 +81,14 @@ const Header = () => {
                 <>
                   <span className="header-greeting">Xin chào, {user.name}</span>
                   {user.role !== 'admin' && <Link to="/orders">Đơn hàng của tôi</Link>}
-                  {user.role === 'admin' && (
+                  {isAdmin && (
                     <>
+                      <Link to="/admin/dashboard">Dashboard</Link>
                       <Link to="/admin/orders">Đơn hàng</Link>
                       <Link to="/admin/products">Quản trị</Link>
                     </>
                   )}
-                  <Link to="/account">Tài khoản</Link>
+                  {!isAdmin && <Link to="/account">Tài khoản</Link>}
                   <button type="button" className="header-logout" onClick={handleLogout}>
                     <FiLogOut /> Đăng xuất
                   </button>
@@ -93,29 +112,35 @@ const Header = () => {
               <span className="logo-subtitle">Cầu Lông Chuyên Nghiệp</span>
             </Link>
 
-            <form className="search-form" onSubmit={handleSearch}>
-              <input
-                type="text"
-                placeholder="Tìm kiếm sản phẩm..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
-              />
-              <button type="submit" className="search-btn">
-                <FiSearch />
-              </button>
-            </form>
+            {!isAdmin && (
+              <form className="search-form" onSubmit={handleSearch}>
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm sản phẩm..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="search-input"
+                />
+                <button type="submit" className="search-btn">
+                  <FiSearch />
+                </button>
+              </form>
+            )}
 
             <div className="header-icons">
-              <Link to="/cart" className="cart-icon">
-                <FiShoppingCart />
-                {getTotalItems() > 0 && (
-                  <span className="cart-badge">{getTotalItems()}</span>
-                )}
-              </Link>
-              <Link to={user ? '/account' : '/login'} className="user-icon" title={user ? user.name : 'Đăng nhập'}>
-                <FiUser />
-              </Link>
+              {!isAdmin && (
+                <>
+                  <Link to="/cart" className="cart-icon">
+                    <FiShoppingCart />
+                    {getTotalItems() > 0 && (
+                      <span className="cart-badge">{getTotalItems()}</span>
+                    )}
+                  </Link>
+                  <Link to={user ? '/account' : '/login'} className="user-icon" title={user ? user.name : 'Đăng nhập'}>
+                    <FiUser />
+                  </Link>
+                </>
+              )}
               <button
                 className="menu-toggle"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -127,32 +152,34 @@ const Header = () => {
         </div>
       </div>
 
-      <nav className={`navbar ${isMenuOpen ? 'active' : ''}`}>
-        <div className="container">
-          <ul className="nav-menu">
-            <li><Link to="/">Trang chủ</Link></li>
+      {!isAdmin && (
+        <nav className={`navbar ${isMenuOpen ? 'active' : ''}`}>
+          <div className="container">
+            <ul className="nav-menu">
+              <li><Link to="/">Trang chủ</Link></li>
 
-            <li className="nav-item-has-dropdown">
-              <Link to="/products" className="nav-link-root">
-                Sản phẩm
-              </Link>
-              <div className="mega-menu">
-                <div className="mega-menu-inner">
-                  {categories.map((cat, index) => (
-                    <Link key={index} to={cat.path} className="mega-menu-link">
-                      {cat.name}
-                    </Link>
-                  ))}
+              <li className="nav-item-has-dropdown">
+                <Link to="/products" className="nav-link-root">
+                  Sản phẩm
+                </Link>
+                <div className="mega-menu">
+                  <div className="mega-menu-inner">
+                    {visibleCategories.map((cat, index) => (
+                      <Link key={index} to={cat.path} className="mega-menu-link">
+                        {cat.name}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </li>
+              </li>
 
-            <li><Link to="/products?sale=true">Sale Off</Link></li>
-            <li><Link to="/news">Tin tức</Link></li>
-            <li><Link to="/contact">Liên hệ</Link></li>
-          </ul>
-        </div>
-      </nav>
+              <li><Link to="/products?sale=true">Sale Off</Link></li>
+              <li><Link to="/news">Tin tức</Link></li>
+              <li><Link to="/contact">Liên hệ</Link></li>
+            </ul>
+          </div>
+        </nav>
+      )}
     </header>
   )
 }

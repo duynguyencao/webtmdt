@@ -22,11 +22,20 @@ const orderSchema = new mongoose.Schema({
     ward: String
   },
   items: [orderItemSchema],
+  subtotal: { type: Number, default: 0 },
+  discount: { type: Number, default: 0 },
+  couponCode: { type: String, default: null },
+  // Dùng để tránh "trừ lượt dùng coupon" khi đơn chưa thanh toán xong (PayOS).
+  couponConsumed: { type: Boolean, default: false },
   total: { type: Number, required: true },
-  // paymentMethod: 'cod' (thanh toán khi nhận hàng) hoặc 'bank_transfer' (chuyển khoản/QR ngân hàng)
-  paymentMethod: { type: String, default: 'cod', enum: ['cod', 'bank_transfer'] },
+  // paymentMethod: 'cod' (thanh toán khi nhận hàng) hoặc 'payos' (chuyển khoản qua PayOS)
+  paymentMethod: { type: String, default: 'cod', enum: ['cod', 'payos'] },
   paymentStatus: { type: String, enum: ['pending_payment', 'paid'], default: null },
   note: String,
+  // PayOS metadata (dùng để đối soát webhook)
+  payosOrderCode: { type: Number, default: null },
+  payosPaymentLinkId: { type: String, default: null },
+  payosReference: { type: String, default: null },
   status: {
     type: String,
     enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],

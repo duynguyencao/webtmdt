@@ -1,27 +1,22 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
+import AdminLayout from '../components/AdminLayout'
 import './AdminProducts.css'
 
 const CATEGORIES = [
-  { value: 'vot', label: 'Vợt Cầu Lông' },
-  { value: 'giay', label: 'Giày Cầu Lông' },
-  { value: 'ao', label: 'Áo Cầu Lông' },
-  { value: 'quan', label: 'Quần Cầu Lông' },
-  { value: 'tui', label: 'Túi Vợt' },
-  { value: 'phu-kien', label: 'Phụ Kiện' }
+  { value: 'vot', label: 'Vợt Cầu Lông' }
 ]
 
 const emptyForm = () => ({
   name: '',
   brand: '',
   category: 'vot',
-  price: '',
   originalPrice: '',
   image: '',
   description: '',
   stock: 0,
-  sale: false
+  discountPercent: 0
 })
 
 const AdminProducts = () => {
@@ -35,6 +30,13 @@ const AdminProducts = () => {
   const [formData, setFormData] = useState(emptyForm())
   const [submitLoading, setSubmitLoading] = useState(false)
   const [submitError, setSubmitError] = useState(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewProduct, setPreviewProduct] = useState(null)
+  const [searchText, setSearchText] = useState('')
+  const [stockFilter, setStockFilter] = useState('all')
+  const [sortKey, setSortKey] = useState('id_desc')
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 10
 
   useEffect(() => {
     api.getMe()
@@ -67,27 +69,48 @@ const AdminProducts = () => {
     setFormOpen(true)
   }
 
-  const openEdit = (product) => {
-    setEditingId(product.id)
-    setFormData({
-      name: product.name || '',
-      brand: product.brand || '',
-      category: product.category || 'vot',
-      price: product.price ?? '',
-      originalPrice: product.originalPrice ?? '',
-      image: product.image || '',
-      description: product.description || '',
-      stock: product.stock ?? 0,
-      sale: product.sale ?? false
-    })
-    setSubmitError(null)
-    setFormOpen(true)
+  const openEdit = async (product) => {
+    try {
+      const full = await api.getProductDetail(product.id)
+      setEditingId(product.id)
+      setFormData({
+        name: full.name || '',
+        brand: full.brand || '',
+        category: full.category || 'vot',
+        originalPrice: full.originalPrice ?? '',
+        image: full.image || (full.images && full.images[0]) || '',
+        description: full.description || '',
+        stock: full.stock ?? 0,
+        discountPercent: full.originalPrice && full.price
+          ? Math.max(0, Math.round((1 - full.price / full.originalPrice) * 100))
+          : 0
+      })
+      setSubmitError(null)
+      setFormOpen(true)
+    } catch (err) {
+      alert('Không thể tải thông tin sản phẩm: ' + err.message)
+    }
+  }
+
+  const openPreview = async (product) => {
+    try {
+      const full = await api.getProductDetail(product.id)
+      setPreviewProduct(full)
+      setPreviewOpen(true)
+    } catch (err) {
+      alert('Không thể tải thông tin sản phẩm: ' + err.message)
+    }
   }
 
   const closeForm = () => {
     setFormOpen(false)
     setEditingId(null)
     setFormData(emptyForm())
+  }
+
+  const closePreview = () => {
+    setPreviewOpen(false)
+    setPreviewProduct(null)
   }
 
   const handleChange = (e) => {
@@ -103,17 +126,29 @@ const AdminProducts = () => {
     setSubmitLoading(true)
     setSubmitError(null)
     try {
+      const parsedOriginalPrice = Number(formData.originalPrice) || 0
+      const parsedDiscountPercent = Math.min(90, Math.max(0, Number(formData.discountPercent) || 0))
+      const hasDiscount = parsedDiscountPercent > 0
+      const finalPrice = Math.round(parsedOriginalPrice * (1 - parsedDiscountPercent / 100))
+
+      if (parsedOriginalPrice <= 0) {
+        setSubmitError('Giá gốc phải lớn hơn 0')
+        setSubmitLoading(false)
+        return
+      }
+
       const body = {
         name: formData.name.trim(),
         brand: formData.brand.trim(),
         category: formData.category,
-        price: Number(formData.price) || 0,
+        price: finalPrice,
         image: formData.image.trim() || undefined,
-        description: formData.description.trim() || undefined,
+        description: formData.description.trim(),
         stock: Number(formData.stock) || 0,
-        sale: formData.sale
+        sale: hasDiscount
       }
-      if (formData.originalPrice) body.originalPrice = Number(formData.originalPrice)
+      body.originalPrice = parsedOriginalPrice
+      body.discountPercent = parsedDiscountPercent
       if (editingId != null) {
         await api.updateProduct(editingId, body)
         loadProducts()
@@ -141,18 +176,90 @@ const AdminProducts = () => {
   }
 
   const formatPrice = (n) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n)
+  const calcDiscountPercent = (p) => {
+    const original = Number(p?.originalPrice) || 0
+    const price = Number(p?.price) || 0
+    if (!original || price <= 0 || original <= 0) return 0
+    if (price >= original) return 0
+    return Math.round((1 - price / original) * 100)
+  }
 
-  if (loading) return <div className="admin-loading">Đang kiểm tra quyền...</div>
+  if (loading) {
+    return (
+      <AdminLayout title="Quản lý sản phẩm" subtitle="Tạo, chỉnh sửa và kiểm soát tồn kho vợt cầu lông">
+        <div className="admin-products-page">
+          <div className="admin-loading">Đang tải sản phẩm...</div>
+          <div className="admin-table-skeleton">
+            {Array.from({ length: 6 }).map((_, rowIdx) => (
+              <div className="admin-skeleton-row" key={rowIdx}>
+                {Array.from({ length: 9 }).map((__, i) => (
+                  <div className="admin-skeleton-cell" key={i} />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </AdminLayout>
+    )
+  }
   if (!user || user.role !== 'admin') return null
 
+  const filteredProducts = products
+    .filter((p) => {
+      const q = searchText.trim().toLowerCase()
+      if (!q) return true
+      return String(p.name || '').toLowerCase().includes(q) || String(p.brand || '').toLowerCase().includes(q)
+    })
+    .filter((p) => {
+      if (stockFilter === 'in_stock') return (Number(p.stock) || 0) > 0
+      if (stockFilter === 'out_stock') return (Number(p.stock) || 0) <= 0
+      return true
+    })
+    .sort((a, b) => {
+      if (sortKey === 'price_asc') return (Number(a.price) || 0) - (Number(b.price) || 0)
+      if (sortKey === 'price_desc') return (Number(b.price) || 0) - (Number(a.price) || 0)
+      if (sortKey === 'stock_asc') return (Number(a.stock) || 0) - (Number(b.stock) || 0)
+      if (sortKey === 'stock_desc') return (Number(b.stock) || 0) - (Number(a.stock) || 0)
+      return (Number(b.id) || 0) - (Number(a.id) || 0)
+    })
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize))
+  const page = Math.min(currentPage, totalPages)
+  const paginatedProducts = filteredProducts.slice((page - 1) * pageSize, page * pageSize)
+  const previewOriginalPrice = Math.max(0, Number(formData.originalPrice) || 0)
+  const previewDiscountPercent = Math.min(90, Math.max(0, Number(formData.discountPercent) || 0))
+  const previewSalePrice = previewOriginalPrice > 0
+    ? Math.round(previewOriginalPrice * (1 - previewDiscountPercent / 100))
+    : 0
+
   return (
-    <div className="admin-products-page">
-      <div className="container">
+    <AdminLayout title="Quản lý sản phẩm" subtitle="Tạo, chỉnh sửa và kiểm soát tồn kho vợt cầu lông">
+      <div className="admin-products-page">
         <div className="admin-header">
-          <h1>Quản lý sản phẩm</h1>
-          <button type="button" className="btn btn-primary" onClick={openAdd}>
-            + Thêm sản phẩm
-          </button>
+          <h2>Danh sách sản phẩm</h2>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <input
+              className="admin-filter-input"
+              placeholder="Tìm theo tên/thương hiệu"
+              value={searchText}
+              onChange={(e) => { setSearchText(e.target.value); setCurrentPage(1) }}
+            />
+            <select className="admin-filter-input" value={stockFilter} onChange={(e) => { setStockFilter(e.target.value); setCurrentPage(1) }}>
+              <option value="all">Tất cả tồn kho</option>
+              <option value="in_stock">Còn hàng</option>
+              <option value="out_stock">Hết hàng</option>
+            </select>
+            <select className="admin-filter-input" value={sortKey} onChange={(e) => setSortKey(e.target.value)}>
+              <option value="id_desc">Mới nhất</option>
+              <option value="price_desc">Giá cao nhất</option>
+              <option value="price_asc">Giá thấp nhất</option>
+              <option value="stock_desc">Tồn kho cao nhất</option>
+              <option value="stock_asc">Tồn kho thấp nhất</option>
+            </select>
+            <button type="button" className="btn btn-primary" onClick={openAdd}>
+              + Thêm sản phẩm
+            </button>
+          </div>
         </div>
 
         {error && <p className="admin-error">{error}</p>}
@@ -167,12 +274,18 @@ const AdminProducts = () => {
                 <th>Thương hiệu</th>
                 <th>Danh mục</th>
                 <th>Giá</th>
+                <th>Mô tả</th>
+                <th>Tồn kho</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              {products.map((p) => (
-                <tr key={p.id}>
+              {paginatedProducts.map((p) => (
+                <tr
+                  key={p.id}
+                  className="admin-row-clickable"
+                  onClick={() => openPreview(p)}
+                >
                   <td>{p.id}</td>
                   <td>
                     <img src={p.image} alt="" className="admin-thumb" />
@@ -181,11 +294,23 @@ const AdminProducts = () => {
                   <td>{p.brand}</td>
                   <td>{CATEGORIES.find((c) => c.value === p.category)?.label || p.category}</td>
                   <td>{formatPrice(p.price)}</td>
+                  <td>{(p.description || '').slice(0, 80) || '—'}</td>
+                  <td style={{ textAlign: 'center', color: (p.stock ?? 0) === 0 ? '#e53935' : 'inherit', fontWeight: (p.stock ?? 0) === 0 ? 600 : 400 }}>
+                    {(p.stock ?? 0) === 0 ? 'Hết hàng' : p.stock}
+                  </td>
                   <td>
-                    <button type="button" className="btn btn-sm btn-outline" onClick={() => openEdit(p)}>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline"
+                      onClick={(e) => { e.stopPropagation(); openEdit(p) }}
+                    >
                       Sửa
                     </button>
-                    <button type="button" className="btn btn-sm btn-danger" onClick={() => handleDelete(p.id, p.name)}>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-danger"
+                      onClick={(e) => { e.stopPropagation(); handleDelete(p.id, p.name) }}
+                    >
                       Xóa
                     </button>
                   </td>
@@ -193,7 +318,20 @@ const AdminProducts = () => {
               ))}
             </tbody>
           </table>
-          {products.length === 0 && !error && <p className="admin-empty">Chưa có sản phẩm nào.</p>}
+          {filteredProducts.length === 0 && !error && <p className="admin-empty">Không tìm thấy sản phẩm phù hợp bộ lọc.</p>}
+          {filteredProducts.length > 0 && (
+            <div className="admin-pagination">
+              <span>Trang {page}/{totalPages}</span>
+              <div className="admin-pagination-actions">
+                <button type="button" className="btn btn-outline btn-sm" disabled={page <= 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>
+                  Trước
+                </button>
+                <button type="button" className="btn btn-outline btn-sm" disabled={page >= totalPages} onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}>
+                  Sau
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {formOpen && (
@@ -222,18 +360,28 @@ const AdminProducts = () => {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label>Giá (VNĐ) *</label>
-                    <input type="number" name="price" value={formData.price} onChange={handleChange} required min="0" />
+                    <label>Giá gốc (VNĐ) *</label>
+                    <input type="number" name="originalPrice" value={formData.originalPrice} onChange={handleChange} required min="0" />
                   </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Giá gốc (VNĐ)</label>
-                    <input type="number" name="originalPrice" value={formData.originalPrice} onChange={handleChange} min="0" />
+                    <label>Giảm giá (%)</label>
+                    <input type="number" name="discountPercent" value={formData.discountPercent} onChange={handleChange} min="0" max="90" />
                   </div>
+                  <div className="form-group">
+                    <label>Giá bán hiển thị</label>
+                    <input value={previewSalePrice ? formatPrice(previewSalePrice) : '—'} readOnly />
+                  </div>
+                </div>
+                <div className="form-row">
                   <div className="form-group">
                     <label>Số lượng tồn</label>
                     <input type="number" name="stock" value={formData.stock} onChange={handleChange} min="0" />
+                  </div>
+                  <div className="form-group">
+                    <label>Tiết kiệm</label>
+                    <input value={previewOriginalPrice > 0 ? formatPrice(previewOriginalPrice - previewSalePrice) : '—'} readOnly />
                   </div>
                 </div>
                 <div className="form-group">
@@ -241,14 +389,8 @@ const AdminProducts = () => {
                   <input name="image" value={formData.image} onChange={handleChange} required placeholder="https://..." />
                 </div>
                 <div className="form-group">
-                  <label>Mô tả</label>
-                  <textarea name="description" value={formData.description} onChange={handleChange} rows={3} />
-                </div>
-                <div className="form-group checkbox-group">
-                  <label>
-                    <input type="checkbox" name="sale" checked={formData.sale} onChange={handleChange} />
-                    Đang giảm giá
-                  </label>
+                  <label>Mô tả *</label>
+                  <textarea name="description" value={formData.description} onChange={handleChange} rows={3} required />
                 </div>
                 <div className="form-actions">
                   <button type="button" className="btn btn-outline" onClick={closeForm}>
@@ -262,8 +404,89 @@ const AdminProducts = () => {
             </div>
           </div>
         )}
+
+        {previewOpen && previewProduct && (
+          <div className="admin-modal" onClick={closePreview}>
+            <div className="admin-modal-content admin-preview-modal-content" onClick={(e) => e.stopPropagation()}>
+              <h2>Thông tin sản phẩm</h2>
+
+              <div className="admin-preview-grid">
+                <div className="admin-preview-image">
+                  <img
+                    src={previewProduct.image || (previewProduct.images && previewProduct.images[0]) || ''}
+                    alt={previewProduct.name}
+                  />
+                </div>
+
+                <div className="admin-preview-meta">
+                  <table className="admin-preview-table">
+                    <tbody>
+                      <tr>
+                        <th>Tên</th>
+                        <td>{previewProduct.name || '—'}</td>
+                      </tr>
+                      <tr>
+                        <th>Thương hiệu</th>
+                        <td>{previewProduct.brand || '—'}</td>
+                      </tr>
+                      <tr>
+                        <th>Danh mục</th>
+                        <td>{CATEGORIES.find((c) => c.value === previewProduct.category)?.label || previewProduct.category || '—'}</td>
+                      </tr>
+                      <tr>
+                        <th>Giá</th>
+                        <td>
+                          {formatPrice(previewProduct.price || 0)}
+                          {previewProduct.originalPrice ? (
+                            <>
+                              <span className="admin-preview-muted"> (gốc {formatPrice(previewProduct.originalPrice)})</span>
+                            </>
+                          ) : null}
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Giảm giá</th>
+                        <td>
+                          {(() => {
+                            const percent = calcDiscountPercent(previewProduct)
+                            if (!percent) return 'Không'
+                            return `${percent}%`
+                          })()}
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Tồn kho</th>
+                        <td>{previewProduct.stock ?? 0}</td>
+                      </tr>
+                      <tr>
+                        <th>Mô tả</th>
+                        <td className="admin-preview-description">{previewProduct.description || '—'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="form-actions admin-preview-actions">
+                <button type="button" className="btn btn-outline" onClick={closePreview}>
+                  Đóng
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    closePreview()
+                    openEdit(previewProduct)
+                  }}
+                >
+                  Sửa sản phẩm
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </AdminLayout>
   )
 }
 

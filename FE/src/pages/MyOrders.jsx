@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import './MyOrders.css'
+import './AdminDashboard.css'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
+import viLocale from 'date-fns/locale/vi'
 
 const formatPrice = (price) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)
@@ -20,12 +24,34 @@ const STATUS_LABELS = {
   cancelled: 'Đã hủy'
 }
 
+const QUICK_DAYS = [7, 15, 30]
+
+const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
+const endOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999)
+const addDays = (date, days) => {
+  const next = new Date(date)
+  next.setDate(next.getDate() + days)
+  return next
+}
+
+const formatVNDate = (date) => {
+  if (!date) return ''
+  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
 const MyOrders = () => {
   const navigate = useNavigate()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [cancellingId, setCancellingId] = useState(null)
+
+  const [isRangeModalOpen, setIsRangeModalOpen] = useState(false)
+  const [rangeStart, setRangeStart] = useState(() => {
+    const now = new Date()
+    return startOfDay(addDays(now, -29))
+  })
+  const [rangeEnd, setRangeEnd] = useState(() => endOfDay(new Date()))
 
   const loadOrders = () => api.getMyOrders().then(setOrders)
 
@@ -53,6 +79,16 @@ const MyOrders = () => {
     }
   }
 
+  const filteredOrders = useMemo(() => {
+    const start = rangeStart ? new Date(rangeStart).getTime() : null
+    const end = rangeEnd ? new Date(rangeEnd).getTime() : null
+    if (start == null || end == null) return orders
+    return orders.filter((o) => {
+      const t = new Date(o.createdAt || 0).getTime()
+      return t >= start && t <= end
+    })
+  }, [orders, rangeStart, rangeEnd])
+
   if (!api.getToken()) return null
 
   if (loading) {
@@ -60,6 +96,11 @@ const MyOrders = () => {
       <div className="my-orders-page">
         <div className="container">
           <div className="my-orders-loading">Đang tải đơn hàng...</div>
+          <div className="my-orders-skeleton">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div className="my-order-skeleton-card" key={idx} />
+            ))}
+          </div>
         </div>
       </div>
     )
@@ -79,17 +120,93 @@ const MyOrders = () => {
   return (
     <div className="my-orders-page">
       <div className="container">
-        <h1 className="page-title">Đơn hàng của tôi</h1>
-        {orders.length === 0 ? (
+        <div className="my-orders-title-row">
+          <h1 className="page-title">Đơn hàng của tôi</h1>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={() => setIsRangeModalOpen(true)}
+          >
+            {rangeStart && rangeEnd ? `${formatVNDate(rangeStart)} - ${formatVNDate(rangeEnd)}` : 'Chọn ngày'}
+          </button>
+        </div>
+
+        {isRangeModalOpen && (
+          <div className="admin-date-modal-overlay" onClick={() => setIsRangeModalOpen(false)} role="dialog" aria-modal="true">
+            <div className="admin-date-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="admin-date-modal-header">
+                <div>
+                  <div className="admin-date-modal-title">Chọn khoảng thời gian</div>
+                  <div className="admin-date-modal-range">
+                    <strong>{formatVNDate(rangeStart)}</strong> - <strong>{formatVNDate(rangeEnd)}</strong>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="admin-date-modal-close"
+                  onClick={() => setIsRangeModalOpen(false)}
+                  aria-label="Đóng"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="admin-date-picker-wrap">
+                <DatePicker
+                  inline
+                  selectsRange
+                  startDate={rangeStart}
+                  endDate={rangeEnd}
+                  onChange={(dates) => {
+                    const [start, end] = dates
+                    if (start) setRangeStart(startOfDay(start))
+                    if (end) setRangeEnd(endOfDay(end))
+                    if (!end) setRangeEnd(null)
+                  }}
+                  locale={viLocale}
+                  calendarStartDay={1}
+                  showMonthDropdown
+                  showYearDropdown
+                  dropdownMode="select"
+                  yearDropdownItemNumber={16}
+                  shouldCloseOnSelect={false}
+                />
+              </div>
+
+              <div className="admin-date-quick-row">
+                {QUICK_DAYS.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    className="admin-date-quick-pill"
+                    onClick={() => {
+                      const todayStart = startOfDay(new Date())
+                      setRangeStart(startOfDay(addDays(todayStart, -(d - 1))))
+                      setRangeEnd(endOfDay(todayStart))
+                    }}
+                  >
+                    {d} Ngày
+                  </button>
+                ))}
+              </div>
+
+              <button type="button" className="admin-date-confirm-btn" onClick={() => setIsRangeModalOpen(false)}>
+                Chọn ngày
+              </button>
+            </div>
+          </div>
+        )}
+
+        {filteredOrders.length === 0 ? (
           <div className="my-orders-empty">
-            <p>Bạn chưa có đơn hàng nào.</p>
+            <p>{orders.length === 0 ? 'Bạn chưa có đơn hàng nào.' : 'Không có đơn hàng nào trong khoảng thời gian đã chọn.'}</p>
             <button type="button" className="btn btn-primary" onClick={() => navigate('/products')}>
               Mua sắm ngay
             </button>
           </div>
         ) : (
           <div className="my-orders-list">
-            {orders.map((order) => (
+            {filteredOrders.map((order) => (
               <div key={order.orderId} className="order-card">
                 <div className="order-card-header">
                   <span
@@ -128,8 +245,8 @@ const MyOrders = () => {
                     Thanh toán:{' '}
                     {order.paymentMethod === 'cod'
                       ? 'COD'
-                      : order.paymentMethod === 'bank_transfer'
-                        ? 'Chuyển khoản ngân hàng'
+                      : order.paymentMethod === 'payos'
+                        ? 'PayOS'
                         : order.paymentMethod || 'COD'}
                   </span>
                   <button

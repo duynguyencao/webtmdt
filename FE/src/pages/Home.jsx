@@ -2,26 +2,31 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { FiArrowRight, FiTruck, FiShield, FiCreditCard, FiRefreshCw } from 'react-icons/fi'
 import ProductCard from '../components/ProductCard'
-import CategoryCard from '../components/CategoryCard'
 import { api } from '../api/client'
 import './Home.css'
 
 const Home = () => {
-  const [categories, setCategories] = useState([])
-  const [featuredProducts, setFeaturedProducts] = useState([])
+  const [bestSellers, setBestSellers] = useState([])
+  const [newArrivals, setNewArrivals] = useState([])
+  const [discountedProducts, setDiscountedProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [siteConfig, setSiteConfig] = useState({})
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const [catsRes, productsRes] = await Promise.all([
-          api.getCategories(),
-          api.getProducts({ featured: 'true' })
+        const [bestRes, newestRes, discountedRes, configRes] = await Promise.all([
+          api.getBestSellers(8),
+          api.getNewest(8),
+          api.getDiscounted(8),
+          api.getSiteConfig()
         ])
-        setCategories(catsRes)
-        setFeaturedProducts(productsRes)
+        setBestSellers(bestRes || [])
+        setNewArrivals(newestRes || [])
+        setDiscountedProducts(discountedRes || [])
+        setSiteConfig(configRes || {})
       } catch (err) {
         setError(err.message)
       } finally {
@@ -61,11 +66,10 @@ const Home = () => {
         <div className="hero-content">
           <div className="hero-text">
             <h1 className="hero-title">
-              Cửa Hàng Cầu Lông
-              <span className="highlight"> Chuyên Nghiệp</span>
+              {siteConfig.heroTitle || 'Cửa Hàng Cầu Lông Chuyên Nghiệp'}
             </h1>
             <p className="hero-description">
-              Hơn 50 chi nhánh trên toàn quốc. Sản phẩm chính hãng, giá tốt nhất thị trường.
+              {siteConfig.heroSubtitle || 'Hơn 50 chi nhánh trên toàn quốc. Sản phẩm chính hãng, giá tốt nhất thị trường.'}
             </p>
             <div className="hero-buttons">
               <Link to="/products" className="btn btn-primary">
@@ -79,7 +83,7 @@ const Home = () => {
           </div>
           <div className="hero-image">
             <img
-              src="https://cdn.shopvnb.com/uploads/images/tin_tuc/tu-dai-thien-vuong-top-4-huyen-thoai-o-the-gioi-la-ai-1.webp"
+              src={siteConfig.heroImage || 'https://cdn.shopvnb.com/uploads/images/tin_tuc/tu-dai-thien-vuong-top-4-huyen-thoai-o-the-gioi-la-ai-1.webp'}
               alt="Cầu lông"
             />
           </div>
@@ -101,29 +105,11 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Categories Section */}
-      <section className="section">
-        <div className="container">
-          <h2 className="section-title">Danh Mục Sản Phẩm</h2>
-          {loading ? (
-            <p className="loading-text">Đang tải...</p>
-          ) : error ? (
-            <p className="error-text">Không tải được dữ liệu. Kiểm tra backend và MongoDB.</p>
-          ) : (
-            <div className="categories-grid">
-              {categories.map((category, index) => (
-                <CategoryCard key={index} category={category} />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Featured Products Section */}
+      {/* Best Sellers Section */}
       <section className="section products-section">
         <div className="container">
           <div className="section-header">
-            <h2 className="section-title">Sản Phẩm Nổi Bật</h2>
+            <h2 className="section-title">Vợt bán chạy</h2>
             <Link to="/products" className="view-all-link">
               Xem tất cả <FiArrowRight />
             </Link>
@@ -134,7 +120,54 @@ const Home = () => {
             <p className="error-text">Không tải được sản phẩm.</p>
           ) : (
             <div className="products-grid">
-              {featuredProducts.map((product) => (
+              <style>{`.home .products-grid{grid-template-columns: repeat(${Math.min(6, Math.max(2, Number(siteConfig.productGridCols) || 4))}, minmax(0, 1fr));}`}</style>
+              {bestSellers.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* New arrivals */}
+      <section className="section products-section">
+        <div className="container">
+          <div className="section-header">
+            <h2 className="section-title">Vợt mới về</h2>
+            <Link to="/products" className="view-all-link">
+              Xem tất cả <FiArrowRight />
+            </Link>
+          </div>
+          {loading ? (
+            <p className="loading-text">Đang tải...</p>
+          ) : error ? (
+            <p className="error-text">Không tải được sản phẩm.</p>
+          ) : (
+            <div className="products-grid">
+              {newArrivals.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Discounted products */}
+      <section className="section products-section">
+        <div className="container">
+          <div className="section-header">
+            <h2 className="section-title">Đang giảm giá</h2>
+            <Link to="/products?sale=true" className="view-all-link">
+              Xem khuyến mãi <FiArrowRight />
+            </Link>
+          </div>
+          {loading ? (
+            <p className="loading-text">Đang tải...</p>
+          ) : error ? (
+            <p className="error-text">Không tải được sản phẩm.</p>
+          ) : (
+            <div className="products-grid">
+              {discountedProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
@@ -147,7 +180,7 @@ const Home = () => {
         <div className="container">
           <div className="sale-banner">
             <div className="sale-content">
-              <h2 className="sale-title">Sale Off Lên Đến 50%</h2>
+              <h2 className="sale-title">{siteConfig.saleTitle || 'Sale Off Lên Đến 50%'}</h2>
               <p className="sale-description">
                 Cơ hội mua sắm với giá tốt nhất trong năm. Nhanh tay đặt hàng ngay!
               </p>

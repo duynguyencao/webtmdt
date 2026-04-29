@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { FiCheckCircle } from 'react-icons/fi'
 import { useCart } from '../context/CartContext'
 import { api } from '../api/client'
-import BankTransferInfo from '../components/BankTransferInfo'
 import './Checkout.css'
 
+const CHECKOUT_PROFILE_KEY = 'checkout_profile_v1'
+
 const Checkout = () => {
-  const { cartItems, getTotalPrice, clearCart } = useCart()
+  const { cartItems, getTotalPrice, clearCart, appliedCoupon } = useCart()
   const navigate = useNavigate()
   const [authChecked, setAuthChecked] = useState(false)
 
@@ -35,13 +36,68 @@ const Checkout = () => {
   const [orderId, setOrderId] = useState('')
   const [orderPaymentMethod, setOrderPaymentMethod] = useState('cod')
   const [orderTotal, setOrderTotal] = useState(0)
+  const [paymentUrl, setPaymentUrl] = useState(null)
   const [submitError, setSubmitError] = useState(null)
+  const [fieldErrors, setFieldErrors] = useState({})
+
+  // Prefill thông tin từ account + lần nhập gần nhất.
+  useEffect(() => {
+    if (!authChecked) return
+
+    // Load từ localStorage (nếu có) trước để điền các trường giao hàng.
+    try {
+      const raw = localStorage.getItem(CHECKOUT_PROFILE_KEY)
+      if (raw) {
+        const saved = JSON.parse(raw)
+        if (saved && typeof saved === 'object') {
+          setFormData((p) => ({
+            ...p,
+            name: p.name || saved.name || '',
+            phone: p.phone || saved.phone || '',
+            email: p.email || saved.email || '',
+            address: p.address || saved.address || '',
+            city: p.city || saved.city || '',
+            district: p.district || saved.district || '',
+            ward: p.ward || saved.ward || ''
+          }))
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // Load từ profile user (đảm bảo name/email đúng tài khoản).
+    api.getMe()
+      .then((u) => {
+        setFormData((p) => ({
+          ...p,
+          name: p.name || u?.name || '',
+          phone: p.phone || u?.phone || '',
+          email: p.email || u?.email || '',
+          address: p.address || u?.address?.line1 || '',
+          ward: p.ward || u?.address?.ward || '',
+          district: p.district || u?.address?.district || '',
+          city: p.city || u?.address?.city || ''
+        }))
+      })
+      .catch(() => {})
+  }, [authChecked])
+
+  const validators = {
+    name: (v) => /^[\p{L}\s'.-]{2,}$/u.test(v.trim()) ? '' : 'Tên không hợp lệ',
+    phone: (v) => /^(0|\+84)[0-9]{9,10}$/.test(v.replace(/\s+/g, '')) ? '' : 'Số điện thoại không hợp lệ',
+    email: (v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? '' : 'Email không hợp lệ'
+  }
 
   const handleChange = (e) => {
-    setFormData({
+    const next = {
       ...formData,
       [e.target.name]: e.target.value
-    })
+    }
+    setFormData(next)
+    if (validators[e.target.name]) {
+      setFieldErrors((prev) => ({ ...prev, [e.target.name]: validators[e.target.name](e.target.value) }))
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -50,10 +106,20 @@ const Checkout = () => {
       setSubmitError('Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi đặt hàng.')
       return
     }
+    const nextErrors = Object.fromEntries(
+      Object.entries(validators)
+        .map(([key, fn]) => [key, fn(formData[key] || '')])
+        .filter(([, msg]) => msg)
+    )
+    if (Object.keys(nextErrors).length) {
+      setFieldErrors((prev) => ({ ...prev, ...nextErrors }))
+      setSubmitError('Vui lòng nhập đúng định dạng thông tin giao hàng')
+      return
+    }
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      const total = getTotalPrice() + (getTotalPrice() >= 500000 ? 0 : 30000)
+      const total = Math.max(0, getTotalPrice() - (appliedCoupon?.discount || 0))
       const res = await api.createOrder({
         customer: {
           name: formData.name,
@@ -69,16 +135,38 @@ const Checkout = () => {
           price: Number(price),
           quantity: Number(quantity) || 1
         })),
-        total,
-        paymentMethod: (formData.paymentMethod === 'bank_transfer' ? 'bank_transfer' : 'cod'),
+        couponCode: appliedCoupon?.code || undefined,
+        paymentMethod: formData.paymentMethod,
         note: formData.note
       })
-      const totalAmount = getTotalPrice() + (getTotalPrice() >= 500000 ? 0 : 30000)
+      const totalAmount = total
       setOrderId(res.orderId)
       setOrderPaymentMethod(formData.paymentMethod || 'cod')
       setOrderTotal(totalAmount)
       setOrderPlaced(true)
+      setPaymentUrl(res.paymentUrl || null)
       clearCart()
+
+      // Lưu lại thông tin giao hàng để lần sau tự điền.
+      try {
+        localStorage.setItem(CHECKOUT_PROFILE_KEY, JSON.stringify({
+          name: formData.name || '',
+          phone: formData.phone || '',
+          email: formData.email || '',
+          address: formData.address || '',
+          city: formData.city || '',
+          district: formData.district || '',
+          ward: formData.ward || ''
+        }))
+      } catch {
+        // ignore
+      }
+
+      if (formData.paymentMethod === 'payos' && res.paymentUrl) {
+        // Redirect sang PayOS để thanh toán
+        window.location.href = res.paymentUrl
+        return
+      }
     } catch (err) {
       setSubmitError(err.message || 'Đặt hàng thất bại. Thử lại sau.')
     } finally {
@@ -93,11 +181,14 @@ const Checkout = () => {
     }).format(price)
   }
 
+  useEffect(() => {
+    // Không chạy logic redirect khi chưa kiểm tra auth xong,
+    // tránh thay đổi thứ tự hook và gây điều hướng vòng lặp.
+    if (!authChecked) return
+    if (cartItems.length === 0 && !orderPlaced) navigate('/cart', { replace: true })
+  }, [authChecked, cartItems.length, orderPlaced, navigate])
+
   if (!authChecked || (!api.getToken() && !orderPlaced)) return null
-  if (cartItems.length === 0 && !orderPlaced) {
-    navigate('/cart')
-    return null
-  }
 
   if (orderPlaced) {
     return (
@@ -110,11 +201,17 @@ const Checkout = () => {
             <p className="order-info">
               Mã đơn hàng: <strong>#{orderId}</strong>
             </p>
-            {orderPaymentMethod === 'bank_transfer' && (
+            {orderPaymentMethod === 'payos' && (
               <div className="bank-transfer-instructions">
-                <h3>Thông tin chuyển khoản</h3>
-                <p>Vui lòng dùng ứng dụng ngân hàng để quét mã QR bên dưới hoặc chuyển khoản theo thông tin tài khoản.</p>
-                <BankTransferInfo orderId={orderId} amount={orderTotal} />
+                <h3>Thanh toán qua PayOS</h3>
+                <p>
+                  Vui lòng hoàn tất thanh toán trên PayOS. Sau khi giao dịch thành công, hệ thống sẽ tự cập nhật trạng thái đơn.
+                </p>
+                {paymentUrl && (
+                  <a className="btn btn-primary" href={paymentUrl} target="_blank" rel="noreferrer">
+                    Mở PayOS để thanh toán
+                  </a>
+                )}
               </div>
             )}
             <p className="order-info">
@@ -156,6 +253,7 @@ const Checkout = () => {
                       onChange={handleChange}
                       required
                     />
+                    {fieldErrors.name && <small className="error-text">{fieldErrors.name}</small>}
                   </div>
                   <div className="form-group">
                     <label>Số điện thoại *</label>
@@ -166,6 +264,7 @@ const Checkout = () => {
                       onChange={handleChange}
                       required
                     />
+                    {fieldErrors.phone && <small className="error-text">{fieldErrors.phone}</small>}
                   </div>
                   <div className="form-group">
                     <label>Email</label>
@@ -175,6 +274,7 @@ const Checkout = () => {
                       value={formData.email}
                       onChange={handleChange}
                     />
+                    {fieldErrors.email && <small className="error-text">{fieldErrors.email}</small>}
                   </div>
                   <div className="form-group full-width">
                     <label>Địa chỉ *</label>
@@ -239,19 +339,19 @@ const Checkout = () => {
                     <input
                       type="radio"
                       name="paymentMethod"
-                      value="bank_transfer"
-                      checked={formData.paymentMethod === 'bank_transfer'}
+                      value="payos"
+                      checked={formData.paymentMethod === 'payos'}
                       onChange={handleChange}
                     />
                     <div className="payment-info">
-                      <strong>Chuyển khoản qua ngân hàng (QR)</strong>
-                      <span>Quét QR hoặc chuyển khoản theo thông tin tài khoản của shop</span>
+                      <strong>Chuyển khoản qua PayOS</strong>
+                      <span>Thanh toán tự động và hệ thống sẽ cập nhật khi thành công</span>
                     </div>
                   </label>
                 </div>
-                {formData.paymentMethod === 'bank_transfer' && (
+                {formData.paymentMethod === 'payos' && (
                   <p className="bank-transfer-addinfo-hint">
-                    Sau khi bấm <strong>Đặt hàng</strong>, màn hình xác nhận sẽ hiển thị thông tin tài khoản và mã đơn để bạn chuyển khoản.
+                    Sau khi bấm <strong>Đặt hàng</strong>, bạn sẽ được chuyển sang PayOS để thanh toán ngay.
                   </p>
                 )}
               </div>
@@ -304,18 +404,9 @@ const Checkout = () => {
                 <span>Tạm tính:</span>
                 <span>{formatPrice(getTotalPrice())}</span>
               </div>
-              <div className="summary-row">
-                <span>Phí vận chuyển:</span>
-                <span className="free-shipping">
-                  {getTotalPrice() >= 500000 ? 'Miễn phí' : formatPrice(30000)}
-                </span>
-              </div>
-              <div className="summary-divider"></div>
               <div className="summary-row total">
                 <span>Tổng cộng:</span>
-                <span>
-                  {formatPrice(getTotalPrice() + (getTotalPrice() >= 500000 ? 0 : 30000))}
-                </span>
+                <span>{formatPrice(Math.max(0, getTotalPrice() - (appliedCoupon?.discount || 0)))}</span>
               </div>
             </div>
           </div>

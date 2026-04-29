@@ -21,6 +21,10 @@
   padding-bottom: 1rem;
   border-bottom: 2px solid var(--border-color);
   margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .cart-header h2 {
@@ -28,6 +32,19 @@
   font-weight: 700;
   margin: 0;
   color: var(--text-dark);
+}
+
+.clear-all-btn {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.clear-all-btn:hover {
+  background: #fecaca;
 }
 
 .cart-item {
@@ -255,6 +272,18 @@
 .promo-input .btn {
   padding: 0.75rem 1.5rem;
   white-space: nowrap;
+}
+
+.coupon-success {
+  margin: 0 0 0.75rem;
+  color: #15803d;
+  font-weight: 600;
+}
+
+.coupon-error {
+  margin: 0 0 0.75rem;
+  color: #b91c1c;
+  font-weight: 600;
 }
 
 .empty-cart {

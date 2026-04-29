@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
 
 const CartContext = createContext()
 
@@ -12,6 +12,9 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([])
+  const [toastMessage, setToastMessage] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const toastTimeoutRef = useRef(null)
 
   useEffect(() => {
     const savedCart = localStorage.getItem('cart')
@@ -23,6 +26,12 @@ export const CartProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cartItems))
   }, [cartItems])
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
+    }
+  }, [])
 
   const addToCart = (product, quantity = 1) => {
     setCartItems(prevItems => {
@@ -36,6 +45,9 @@ export const CartProvider = ({ children }) => {
       }
       return [...prevItems, { ...product, quantity }]
     })
+    setToastMessage(`Da them ${quantity} x ${product.name} vao gio hang`)
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
+    toastTimeoutRef.current = setTimeout(() => setToastMessage(''), 2000)
   }
 
   const removeFromCart = (productId) => {
@@ -56,6 +68,7 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     setCartItems([])
+    setAppliedCoupon(null)
   }
 
   const getTotalItems = () => {
@@ -70,10 +83,13 @@ export const CartProvider = ({ children }) => {
     <CartContext.Provider
       value={{
         cartItems,
+        toastMessage,
+        appliedCoupon,
         addToCart,
         removeFromCart,
         updateQuantity,
         clearCart,
+        setAppliedCoupon,
         getTotalItems,
         getTotalPrice,
       }}

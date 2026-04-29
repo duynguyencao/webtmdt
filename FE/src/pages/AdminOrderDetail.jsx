@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
+import AdminLayout from '../components/AdminLayout'
 import './AdminOrderDetail.css'
 
 const formatPrice = (price) =>
@@ -13,7 +14,7 @@ const formatDate = (str) => {
 
 const paymentLabel = (method) => {
   if (method === 'cod') return 'Thanh toán khi nhận hàng (COD)'
-  if (method === 'bank_transfer') return 'Chuyển khoản ngân hàng (QR)'
+  if (method === 'payos') return 'PayOS (Chuyển khoản)'
   return method || 'COD'
 }
 
@@ -88,22 +89,6 @@ const AdminOrderDetail = () => {
     }
   }
 
-  const handleMarkPaid = async (e) => {
-    e.stopPropagation()
-    if (actionLoading || (order?.paymentMethod || '').toLowerCase() !== 'bank_transfer') return
-    if (order?.paymentStatus === 'paid') return
-    if (!window.confirm('Xác nhận đơn chuyển khoản này đã thanh toán?')) return
-    setActionLoading(true)
-    try {
-      await api.markOrderPaid(orderId)
-      await loadOrder()
-    } catch (err) {
-      alert(err.message || 'Không cập nhật được')
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
   if (loading) {
     return (
       <div className="admin-order-detail-page">
@@ -116,14 +101,14 @@ const AdminOrderDetail = () => {
 
   if (error && !order) {
     return (
-      <div className="admin-order-detail-page">
-        <div className="container">
+      <AdminLayout title="Chi tiết đơn hàng" subtitle="Xử lý trạng thái đơn theo thời gian thực">
+        <div className="admin-order-detail-page">
           <p className="admin-order-detail-error">{error}</p>
           <button type="button" className="btn btn-outline" onClick={() => navigate('/admin/orders')}>
             Quay lại danh sách đơn hàng
           </button>
         </div>
-      </div>
+      </AdminLayout>
     )
   }
 
@@ -131,8 +116,8 @@ const AdminOrderDetail = () => {
   if (!order) return null
 
   return (
-    <div className="admin-order-detail-page">
-      <div className="container">
+    <AdminLayout title={`Chi tiết đơn #${order.orderId}`} subtitle="Xem thông tin khách hàng, sản phẩm và thanh toán">
+      <div className="admin-order-detail-page">
         <div className="admin-order-detail-header">
           <button type="button" className="btn btn-outline btn-sm" onClick={() => navigate('/admin/orders')}>
             ← Quay lại danh sách
@@ -142,32 +127,25 @@ const AdminOrderDetail = () => {
             {STATUS_LABELS[order.status] || STATUS_LABELS.pending}
           </span>
           <span className="admin-order-detail-date">{formatDate(order.createdAt)}</span>
-          {(order.paymentMethod || '').toLowerCase() === 'bank_transfer' && order.paymentStatus !== 'paid' && (
+          {['payos'].includes((order.paymentMethod || '').toLowerCase()) && order.paymentStatus !== 'paid' && (
             <span className="admin-order-detail-payment-status admin-order-detail-payment-status-pending">
               Chưa thanh toán
             </span>
           )}
-          {(order.paymentMethod || '').toLowerCase() === 'bank_transfer' && order.paymentStatus === 'paid' && (
+          {['payos'].includes((order.paymentMethod || '').toLowerCase()) && order.paymentStatus === 'paid' && (
             <span className="admin-order-detail-payment-status admin-order-detail-payment-status-paid">
               Đã thanh toán
             </span>
           )}
-          {(order.status === 'pending' || order.status === 'confirmed') && (
+              {(order.status === 'pending' || order.status === 'confirmed') && (
             <div className="admin-order-detail-actions">
-              {order.status === 'pending' && (
+              {order.status === 'pending' && (order.paymentMethod || '').toLowerCase() === 'cod' && (
                 <button type="button" className="btn btn-primary btn-sm" onClick={handleConfirm} disabled={actionLoading}>
                   {actionLoading ? 'Đang xử lý...' : 'Xác nhận đơn'}
                 </button>
               )}
-              {(order.paymentMethod || '').toLowerCase() === 'bank_transfer' && order.paymentStatus !== 'paid' && (
-                <>
-                  <button type="button" className="btn btn-outline btn-sm btn-success" onClick={handleMarkPaid} disabled={actionLoading}>
-                    Xác nhận đã thanh toán
-                  </button>
-                  <span className="admin-order-detail-paid-hint">
-                    Sau khi kiểm tra sao kê ngân hàng, hãy dùng nút này để đánh dấu đơn đã thanh toán.
-                  </span>
-                </>
+              {(order.paymentMethod || '').toLowerCase() === 'payos' && order.paymentStatus !== 'paid' && (
+                <span className="admin-order-detail-paid-hint">Đang chờ PayOS xác nhận thanh toán...</span>
               )}
               {['pending', 'confirmed'].includes(order.status) && (
                 <button type="button" className="btn btn-outline btn-sm btn-danger" onClick={handleCancel} disabled={actionLoading}>
@@ -226,7 +204,7 @@ const AdminOrderDetail = () => {
           <dl className="admin-order-detail-dl">
             <dt>Phương thức thanh toán</dt>
             <dd>{paymentLabel(order.paymentMethod)}</dd>
-            {(order.paymentMethod || '').toLowerCase() === 'bank_transfer' && (
+            {['payos'].includes((order.paymentMethod || '').toLowerCase()) && (
               <>
                 <dt>Trạng thái thanh toán</dt>
                 <dd>{order.paymentStatus === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}</dd>
@@ -243,7 +221,7 @@ const AdminOrderDetail = () => {
           </dl>
         </div>
       </div>
-    </div>
+    </AdminLayout>
   )
 }
 

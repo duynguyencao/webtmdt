@@ -4,6 +4,38 @@
   overflow-x: hidden;
 }
 
+.breadcrumbs {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  color: #64748b;
+  font-weight: 600;
+  margin: 0 0 1.25rem 0;
+}
+
+.breadcrumbs a {
+  color: #0f172a;
+}
+
+.breadcrumb-sep {
+  opacity: 0.6;
+}
+
+.related-products {
+  margin-top: 2.5rem;
+}
+
+.related-products h2 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.related-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
 .product-detail {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
@@ -328,6 +360,11 @@
 .stock-info {
   font-size: 0.875rem;
   color: var(--text-light);
+}
+
+.stock-info.out-of-stock {
+  color: #e53935;
+  font-weight: 600;
 }
 
 .action-buttons {

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { FiShoppingCart, FiHeart, FiStar, FiMinus, FiPlus, FiCheck } from 'react-icons/fi'
+import { Link, useParams } from 'react-router-dom'
+import { FiShoppingCart, FiStar, FiMinus, FiPlus, FiCheck } from 'react-icons/fi'
 import { useCart } from '../context/CartContext'
 import { api } from '../api/client'
+import ProductCard from '../components/ProductCard'
 import './ProductDetail.css'
 
 const ProductDetail = () => {
@@ -15,6 +16,7 @@ const ProductDetail = () => {
   const [selectedImage, setSelectedImage] = useState(0)
   const [addedToCart, setAddedToCart] = useState(false)
   const [activeTab, setActiveTab] = useState('description') // 'description' | 'specs'
+  const [relatedProducts, setRelatedProducts] = useState([])
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -30,7 +32,7 @@ const ProductDetail = () => {
           ? data.specifications
           : (data.specs || {})
 
-        const stock = typeof data.stock === 'number' && data.stock > 0 ? data.stock : 20
+        const stock = typeof data.stock === 'number' ? data.stock : 0
 
         const descriptionLines = String(data.description || '')
           .split('\n')
@@ -53,6 +55,13 @@ const ProductDetail = () => {
           stock,
           description
         })
+
+        try {
+          const related = await api.getRelatedProducts(id, 4)
+          setRelatedProducts(related || [])
+        } catch {
+          setRelatedProducts([])
+        }
       } catch (err) {
         setError(err.message)
       } finally {
@@ -63,6 +72,7 @@ const ProductDetail = () => {
   }, [id])
 
   const handleAddToCart = () => {
+    if ((product?.stock || 0) <= 0) return
     addToCart(product, quantity)
     setAddedToCart(true)
     setTimeout(() => setAddedToCart(false), 2000)
@@ -82,6 +92,14 @@ const ProductDetail = () => {
   return (
     <div className="product-detail-page">
       <div className="container">
+        <nav className="breadcrumbs" aria-label="Breadcrumb">
+          <Link to="/">Trang chủ</Link>
+          <span className="breadcrumb-sep">/</span>
+          <Link to="/products">Sản phẩm</Link>
+          <span className="breadcrumb-sep">/</span>
+          <span aria-current="page">{product.name}</span>
+        </nav>
+
         <div className="product-detail">
           <div className="product-images">
             <div className="main-image">
@@ -162,7 +180,10 @@ const ProductDetail = () => {
                   <input
                     type="number"
                     value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    onChange={(e) => {
+                      const raw = Math.max(1, parseInt(e.target.value, 10) || 1)
+                      setQuantity(Math.min(Math.max(1, product.stock || 1), raw))
+                    }}
                     min="1"
                     max={product.stock}
                   />
@@ -173,8 +194,8 @@ const ProductDetail = () => {
                     <FiPlus />
                   </button>
                 </div>
-                <span className="stock-info">
-                  Còn {product.stock} sản phẩm
+                <span className={`stock-info ${product.stock === 0 ? 'out-of-stock' : ''}`}>
+                  {product.stock > 0 ? `Còn ${product.stock} sản phẩm` : 'Hết hàng'}
                 </span>
               </div>
 
@@ -182,7 +203,7 @@ const ProductDetail = () => {
                 <button
                   className={`btn btn-primary ${addedToCart ? 'added' : ''}`}
                   onClick={handleAddToCart}
-                  disabled={!product.inStock}
+                  disabled={(product.stock || 0) <= 0}
                 >
                   {addedToCart ? (
                     <>
@@ -193,10 +214,6 @@ const ProductDetail = () => {
                       <FiShoppingCart /> Thêm vào giỏ hàng
                     </>
                   )}
-                </button>
-                <button className="btn btn-outline">
-                  <FiHeart />
-                  Yêu thích
                 </button>
               </div>
             </div>
@@ -273,6 +290,17 @@ const ProductDetail = () => {
             )}
           </div>
         </div>
+
+        {relatedProducts.length > 0 && (
+          <section className="related-products">
+            <h2>Sản phẩm liên quan</h2>
+            <div className="related-products-grid">
+              {relatedProducts.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   )

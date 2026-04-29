@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import BankTransferInfo from '../components/BankTransferInfo'
 import './MyOrderDetail.css'
 
 const formatPrice = (price) =>
@@ -14,7 +13,7 @@ const formatDate = (str) => {
 
 const paymentLabel = (method) => {
   if (method === 'cod') return 'Thanh toán khi nhận hàng (COD)'
-  if (method === 'bank_transfer') return 'Chuyển khoản ngân hàng (QR)'
+  if (method === 'payos') return 'PayOS (Chuyển khoản)'
   return method || 'COD'
 }
 
@@ -100,12 +99,12 @@ const MyOrderDetail = () => {
             {STATUS_LABELS[order.status] || STATUS_LABELS.pending}
           </span>
           <span className="my-order-detail-date">{formatDate(order.createdAt)}</span>
-          {(order.paymentMethod || '').toLowerCase() === 'bank_transfer' && order.paymentStatus !== 'paid' && (
+          {(order.paymentMethod || '').toLowerCase() === 'payos' && order.paymentStatus !== 'paid' && (
             <span className="my-order-detail-payment-status my-order-detail-payment-status-pending">
               Chưa thanh toán
             </span>
           )}
-          {(order.paymentMethod || '').toLowerCase() === 'bank_transfer' && order.paymentStatus === 'paid' && (
+          {(order.paymentMethod || '').toLowerCase() === 'payos' && order.paymentStatus === 'paid' && (
             <span className="my-order-detail-payment-status my-order-detail-payment-status-paid">
               Đã thanh toán
             </span>
@@ -162,16 +161,12 @@ const MyOrderDetail = () => {
           </div>
         </div>
 
-        {(order.paymentMethod || '').toLowerCase() === 'bank_transfer' && order.paymentStatus !== 'paid' && (
+        {(order.paymentMethod || '').toLowerCase() === 'payos' && order.paymentStatus !== 'paid' && (
           <div className="my-order-detail-card">
-            <h2>Thông tin chuyển khoản</h2>
-            <p>Đơn hàng này thanh toán bằng chuyển khoản. Vui lòng quét QR hoặc chuyển khoản theo thông tin dưới đây.</p>
-            <div className="my-order-detail-bank">
-              <BankTransferInfo orderId={order.orderId} amount={order.total} wrapperClass="my-order-detail-bank-qr" />
-            </div>
+            <h2>Thanh toán qua PayOS</h2>
+            <p>Đơn hàng này sẽ được xác nhận tự động khi giao dịch PayOS thành công.</p>
             <p className="my-order-detail-bank-note">
-              Lưu ý: Vui lòng <strong>ghi đúng nội dung chuyển khoản theo mã đơn hàng</strong>. Sau khi shop nhận được
-              tiền đúng nội dung, đơn hàng sẽ được xác nhận và xử lý.
+              Bạn có thể mở lại PayOS từ màn hình thanh toán trước đó. Hiện tại, hệ thống đang chờ webhook cập nhật trạng thái.
             </p>
           </div>
         )}
@@ -181,7 +176,7 @@ const MyOrderDetail = () => {
           <dl className="my-order-detail-dl">
             <dt>Phương thức thanh toán</dt>
             <dd>{paymentLabel(order.paymentMethod)}</dd>
-            {(order.paymentMethod || '').toLowerCase() === 'bank_transfer' && (
+            {(order.paymentMethod || '').toLowerCase() === 'payos' && (
               <>
                 <dt>Trạng thái thanh toán</dt>
                 <dd>{order.paymentStatus === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}</dd>

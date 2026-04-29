@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { FiShoppingCart, FiHeart } from 'react-icons/fi'
+import { FiShoppingCart } from 'react-icons/fi'
 import { useCart } from '../context/CartContext'
 import './ProductCard.css'
 
@@ -20,6 +20,12 @@ const ProductCard = ({ product }) => {
     }).format(price)
   }
 
+  const stock = Number(product?.stock ?? 0) || 0
+  const outOfStock = stock <= 0 || product?.inStock === false
+  const discountPercent = product?.originalPrice
+    ? Math.round((1 - (Number(product.price) || 0) / Number(product.originalPrice) || 1) * 100)
+    : 0
+
   return (
     <div className="product-card">
       <Link to={`/products/${product.id}`} className="product-link">
@@ -29,10 +35,10 @@ const ProductCard = ({ product }) => {
             alt={product.name}
             className="product-image"
           />
-          {product.sale && <span className="sale-badge">Sale</span>}
-          <button className="wishlist-btn" aria-label="Thêm vào yêu thích">
-            <FiHeart />
-          </button>
+          {product.sale && discountPercent > 0 && (
+            <span className="sale-badge">{`-${discountPercent}%`}</span>
+          )}
+          {outOfStock && <span className="out-stock-badge">Hết hàng</span>}
         </div>
         <div className="product-info">
           <h3 className="product-name">{product.name}</h3>
@@ -52,9 +58,9 @@ const ProductCard = ({ product }) => {
           </div>
         </div>
       </Link>
-      <button className="add-to-cart-btn" onClick={handleAddToCart}>
+      <button className="add-to-cart-btn" onClick={handleAddToCart} disabled={outOfStock} aria-disabled={outOfStock}>
         <FiShoppingCart />
-        <span>Thêm vào giỏ</span>
+        <span>{outOfStock ? 'Hết hàng' : 'Thêm vào giỏ'}</span>
       </button>
     </div>
   )

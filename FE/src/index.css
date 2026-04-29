@@ -17,6 +17,11 @@
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15);
   --transition: all 0.3s ease;
+  --admin-bg: #f6f8fc;
+  --admin-card: #ffffff;
+  --admin-border: #e5e7eb;
+  --admin-text: #0f172a;
+  --admin-muted: #64748b;
 }
 
 body {

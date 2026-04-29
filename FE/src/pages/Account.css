@@ -1,0 +1,48 @@
+.account-page {
+  align-items: flex-start;
+}
+
+.account-card {
+  max-width: 560px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.account-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.account-grid-3 .form-group {
+  min-width: 0;
+}
+
+.account-grid-3 input {
+  min-width: 0;
+}
+
+.account-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.account-actions .btn {
+  flex: 1;
+}
+
+.account-help {
+  color: var(--text-light);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .account-grid-3 {
+    grid-template-columns: 1fr;
+  }
+  .account-actions {
+    flex-direction: column;
+  }
+}
+

@@ -5,6 +5,5 @@
  * Role: buyer = người mua, admin = người bán / quản trị.
  */
 export const usersSeed = [
-  { name: 'Admin', email: 'admin@caulong.vn', password: 'admin123', role: 'admin' },
-  { name: 'Người mua 1', email: 'buyer@caulong.vn', password: 'buyer123', role: 'buyer' }
+  { name: 'Admin', email: 'admin@caulong.vn', password: 'admin123', role: 'admin', emailVerified: true },
 ]

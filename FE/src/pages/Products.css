@@ -146,6 +146,68 @@
   accent-color: var(--primary-color);
 }
 
+.price-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.price-slider-values {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: var(--text-light);
+}
+
+.price-dual-slider {
+  width: 100%;
+}
+
+.price-dual-track {
+  position: relative;
+  height: 28px;
+  display: flex;
+  align-items: center;
+}
+
+.price-dual-track::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 4px;
+  background: #e5e7eb;
+  transform: translateY(-50%);
+  border-radius: 999px;
+}
+
+.price-dual-range {
+  position: absolute;
+  top: 50%;
+  height: 4px;
+  background: var(--primary-color);
+  transform: translateY(-50%);
+  border-radius: 999px;
+}
+
+.price-dual-thumb {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #e53935;
+  border: 2px solid #ffffff;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  z-index: 2;
+}
+
+.price-dual-thumb.active {
+  box-shadow: 0 0 0 4px rgba(229, 57, 53, 0.18);
+}
+
 .clear-filters {
   width: 100%;
   padding: 0.75rem;

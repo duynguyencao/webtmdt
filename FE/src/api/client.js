@@ -23,12 +23,24 @@ export const api = {
     return request(`/api/products/${id}`)
   },
 
-  getCategories() {
-    return request('/api/categories')
+  getBestSellers(limit = 8) {
+    return request(`/api/products/best-sellers?limit=${encodeURIComponent(limit)}`)
   },
 
-  getBankInfo() {
-    return request('/api/bank/info')
+  getNewest(limit = 8) {
+    return request(`/api/products/newest?limit=${encodeURIComponent(limit)}`)
+  },
+
+  getDiscounted(limit = 8) {
+    return request(`/api/products/discounted?limit=${encodeURIComponent(limit)}`)
+  },
+
+  getRelatedProducts(id, limit = 8) {
+    return request(`/api/products/related/${encodeURIComponent(id)}?limit=${encodeURIComponent(limit)}`)
+  },
+
+  getCategories() {
+    return request('/api/categories')
   },
 
   postChat(message, history = []) {
@@ -44,6 +56,53 @@ export const api = {
     }
     return request('/api/orders', {
       method: 'POST',
+      headers: { ...this._authHeaders() },
+      body: JSON.stringify(body)
+    })
+  },
+
+  validateCoupon(code, orderTotal) {
+    const q = new URLSearchParams({
+      code: String(code || '').trim(),
+      orderTotal: String(Math.max(0, Number(orderTotal) || 0))
+    }).toString()
+    return request(`/api/coupons/validate?${q}`)
+  },
+
+  getCoupons() {
+    return request('/api/coupons', { headers: { ...this._authHeaders() } })
+  },
+
+  createCoupon(body) {
+    return request('/api/coupons', {
+      method: 'POST',
+      headers: { ...this._authHeaders() },
+      body: JSON.stringify(body)
+    })
+  },
+
+  updateCoupon(code, body) {
+    return request(`/api/coupons/${encodeURIComponent(code)}`, {
+      method: 'PUT',
+      headers: { ...this._authHeaders() },
+      body: JSON.stringify(body)
+    })
+  },
+
+  deleteCoupon(code) {
+    return request(`/api/coupons/${encodeURIComponent(code)}`, {
+      method: 'DELETE',
+      headers: { ...this._authHeaders() }
+    })
+  },
+
+  getSiteConfig() {
+    return request('/api/site-config')
+  },
+
+  updateSiteConfig(body) {
+    return request('/api/site-config', {
+      method: 'PUT',
       headers: { ...this._authHeaders() },
       body: JSON.stringify(body)
     })
@@ -85,13 +144,6 @@ export const api = {
     })
   },
 
-  markOrderPaid(orderId) {
-    return request(`/api/orders/${encodeURIComponent(orderId)}/mark-paid`, {
-      method: 'PATCH',
-      headers: { ...this._authHeaders() }
-    })
-  },
-
   login(email, password) {
     return request('/api/user/login', {
       method: 'POST',
@@ -106,10 +158,23 @@ export const api = {
     })
   },
 
+  verifyEmail(token) {
+    const q = new URLSearchParams({ token: String(token || '').trim() }).toString()
+    return request(`/api/user/verify-email?${q}`)
+  },
+
   getMe() {
     const token = localStorage.getItem(TOKEN_KEY)
     if (!token) return Promise.reject(new Error('Chưa đăng nhập'))
     return request('/api/user/me', { headers: { ...this._authHeaders() } })
+  },
+
+  updateMe(body) {
+    return request('/api/user/me', {
+      method: 'PUT',
+      headers: { ...this._authHeaders() },
+      body: JSON.stringify(body || {})
+    })
   },
 
   _authHeaders() {

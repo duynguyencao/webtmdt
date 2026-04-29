@@ -13,6 +13,9 @@ import userRouter from './routes/userRouter.js'
 import orderRouter from './routes/orderRouter.js'
 import categoryRouter from './routes/categoryRouter.js'
 import chatRouter from './routes/chatRouter.js'
+import couponRouter from './routes/couponRouter.js'
+import siteConfigRouter from './routes/siteConfigRouter.js'
+import payosRouter from './routes/payosRouter.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -39,18 +42,13 @@ app.get('/api/health', (req, res) => {
   })
 })
 
-app.get('/api/bank/info', (req, res) => {
-  const name = (process.env.BANK_NAME || '').trim()
-  const accountNumber = (process.env.BANK_ACCOUNT_NUMBER || '').trim()
-  const accountHolder = (process.env.BANK_ACCOUNT_HOLDER || '').trim()
-  const bin = (process.env.BANK_BIN || '').trim()
-  res.json({ name, accountNumber, accountHolder, bin })
-})
-
 app.use('/api/products', productRouter)
 app.use('/api/user', userRouter)
 app.use('/api/orders', orderRouter)
 app.use('/api/categories', categoryRouter)
+app.use('/api/coupons', couponRouter)
+app.use('/api/site-config', siteConfigRouter)
+app.use('/api/payos', payosRouter)
 // Chatbot cần DB để lấy danh sách sản phẩm — nếu DB chưa kết nối thì báo lỗi rõ
 app.use('/api/chat', (req, res, next) => {
   if (!dbReady) {
