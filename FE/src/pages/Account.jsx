@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
+import VnAddressSelect from '../components/VnAddressSelect'
 import './Auth.css'
 import './Account.css'
 
@@ -17,9 +18,12 @@ const Account = () => {
     email: '',
     phone: '',
     addressLine1: '',
-    ward: '',
-    district: '',
-    city: ''
+    cityCode: '',
+    districtCode: '',
+    wardCode: '',
+    cityName: '',
+    districtName: '',
+    wardName: ''
   })
 
   const validators = useMemo(() => ({
@@ -38,9 +42,12 @@ const Account = () => {
       email: u?.email || '',
       phone: u?.phone || '',
       addressLine1: u?.address?.line1 || '',
-      ward: u?.address?.ward || '',
-      district: u?.address?.district || '',
-      city: u?.address?.city || ''
+      cityCode: u?.address?.cityCode || '',
+      districtCode: u?.address?.districtCode || '',
+      wardCode: u?.address?.wardCode || '',
+      cityName: u?.address?.cityName || u?.address?.city || '',
+      districtName: u?.address?.districtName || u?.address?.district || '',
+      wardName: u?.address?.wardName || u?.address?.ward || ''
     })
   }
 
@@ -86,9 +93,12 @@ const Account = () => {
         name: form.name,
         phone: form.phone,
         addressLine1: form.addressLine1,
-        ward: form.ward,
-        district: form.district,
-        city: form.city
+        cityCode: form.cityCode,
+        districtCode: form.districtCode,
+        wardCode: form.wardCode,
+        cityName: form.cityName,
+        districtName: form.districtName,
+        wardName: form.wardName
       })
       setSuccess(res.message || 'Đã lưu thông tin')
       if (res.user) setMe(res.user)
@@ -104,11 +114,14 @@ const Account = () => {
       ...p,
       phone: '',
       addressLine1: '',
-      ward: '',
-      district: '',
-      city: ''
+      cityCode: '',
+      districtCode: '',
+      wardCode: '',
+      cityName: '',
+      districtName: '',
+      wardName: ''
     }))
-    setFieldErrors((p) => ({ ...p, phone: '', addressLine1: '', ward: '', district: '', city: '' }))
+    setFieldErrors((p) => ({ ...p, phone: '', addressLine1: '' }))
     setSuccess(null)
   }
 
@@ -150,18 +163,15 @@ const Account = () => {
             </div>
 
             <div className="account-grid-3">
-              <div className="form-group">
-                <label>Phường/Xã</label>
-                <input name="ward" value={form.ward} onChange={handleChange} />
-              </div>
-              <div className="form-group">
-                <label>Quận/Huyện</label>
-                <input name="district" value={form.district} onChange={handleChange} />
-              </div>
-              <div className="form-group">
-                <label>Tỉnh/Thành phố</label>
-                <input name="city" value={form.city} onChange={handleChange} />
-              </div>
+              <VnAddressSelect
+                city={form.cityName}
+                district={form.districtName}
+                ward={form.wardName}
+                cityCode={form.cityCode}
+                districtCode={form.districtCode}
+                wardCode={form.wardCode}
+                onChange={(patch) => setForm((p) => ({ ...p, ...patch }))}
+              />
             </div>
 
             <div className="account-actions">

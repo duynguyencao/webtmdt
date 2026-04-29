@@ -249,6 +249,23 @@ const MyOrders = () => {
                         ? 'PayOS'
                         : order.paymentMethod || 'COD'}
                   </span>
+                  {(order.status || 'pending') === 'delivered' && (
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => {
+                        const first = Array.isArray(order.items) ? order.items[0] : null
+                        const productId = first?.id != null ? Number(first.id) : null
+                        if (productId) {
+                          navigate(`/products/${productId}?orderId=${encodeURIComponent(order.orderId)}#reviews`)
+                        } else {
+                          navigate(`/orders/${order.orderId}`)
+                        }
+                      }}
+                    >
+                      Đánh giá sản phẩm
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="btn btn-outline btn-sm order-detail-btn"

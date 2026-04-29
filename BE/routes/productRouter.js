@@ -2,6 +2,8 @@ import { Router } from 'express'
 import Product from '../models/Product.js'
 import Order from '../models/Order.js'
 import { verifyToken, requireRole } from '../middleware/auth.js'
+import { validateBody } from '../validation/validate.js'
+import { productUpsertSchema, productSuggestionsQuerySchema } from '../validation/schemas.js'
 
 const router = Router()
 const ONLY_CATEGORY = 'vot'
@@ -54,6 +56,48 @@ const normalizeProductBody = (body) => {
   next.category = ONLY_CATEGORY
   return next
 }
+
+// GET /api/products/suggestions?query=... — công khai (siêu nhẹ cho thanh search)
+router.get('/suggestions', async (req, res) => {
+  try {
+    const parsed = productSuggestionsQuerySchema.safeParse(req.query)
+    if (!parsed.success) return res.json([])
+    const query = String(parsed.data.query || '').trim()
+    if (!query) return res.json([])
+    const limit = Math.min(10, Math.max(5, Number(parsed.data.limit) || 8))
+    const q = new RegExp(escapeRegex(query), 'i')
+
+    const list = await Product.find({
+      category: ONLY_CATEGORY,
+      isDeleted: { $ne: true },
+      $or: [{ name: q }, { brand: q }]
+    })
+      .select('id name brand price originalPrice image images sale variants stock inStock')
+      .limit(limit)
+      .lean()
+
+    const json = list.map(({ _id, __v, ...rest0 }) => {
+      const rest = ensureDefaultVariant(rest0)
+      const derived = deriveStockFromVariants(rest)
+      const images = Array.isArray(rest.images) ? rest.images : []
+      const image = rest.image || images[0] || ''
+      return {
+        id: rest.id,
+        name: rest.name,
+        brand: rest.brand,
+        price: rest.price,
+        originalPrice: rest.originalPrice,
+        sale: rest.sale,
+        stock: derived.stock,
+        image
+      }
+    })
+
+    res.json(json)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 
 // GET /api/products?category=&search=&featured= — công khai
 router.get('/', async (req, res) => {
@@ -262,7 +306,7 @@ router.get('/:id', async (req, res) => {
 })
 
 // POST /api/products — thêm sản phẩm (admin)
-router.post('/', verifyToken, requireRole('admin'), async (req, res) => {
+router.post('/', verifyToken, requireRole('admin'), validateBody(productUpsertSchema), async (req, res) => {
   try {
     const body = normalizeProductBody(req.body)
     const { name, brand, category, price, image } = body
@@ -283,7 +327,7 @@ router.post('/', verifyToken, requireRole('admin'), async (req, res) => {
 })
 
 // PUT /api/products/:id — cập nhật (admin)
-router.put('/:id', verifyToken, requireRole('admin'), async (req, res) => {
+router.put('/:id', verifyToken, requireRole('admin'), validateBody(productUpsertSchema), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10)
     if (Number.isNaN(id)) return res.status(400).json({ error: 'ID không hợp lệ' })

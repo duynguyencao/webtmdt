@@ -1,0 +1,157 @@
+.shipper-page {
+  min-height: 100vh;
+  background: #0b1220;
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.shipper-shell {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 18px 50px rgba(2, 6, 23, 0.35);
+}
+
+.shipper-error {
+  color: #b91c1c;
+}
+
+.shipper-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.shipper-title {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.shipper-sub {
+  color: #64748b;
+  font-weight: 600;
+  margin-top: 2px;
+  font-size: 0.95rem;
+}
+
+.shipper-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 10px 0 14px;
+}
+
+.shipper-tab {
+  border: 2px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.shipper-tab.active {
+  border-color: #e53935;
+  background: rgba(229, 57, 53, 0.08);
+  color: #e53935;
+}
+
+.shipper-empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.shipper-list {
+  display: grid;
+  gap: 12px;
+}
+
+.shipper-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.shipper-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.shipper-oid {
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.shipper-badge {
+  font-size: 0.8rem;
+  font-weight: 900;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.shipper-badge.b1 {
+  background: rgba(2, 132, 199, 0.12);
+  color: #0284c7;
+}
+
+.shipper-badge.b2 {
+  background: rgba(234, 88, 12, 0.12);
+  color: #ea580c;
+}
+
+.shipper-row {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: 10px;
+  margin: 6px 0;
+}
+
+.shipper-k {
+  color: #64748b;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.shipper-v {
+  color: #0f172a;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.shipper-phone {
+  color: #e53935;
+  text-decoration: none;
+}
+
+.shipper-money {
+  border-top: 1px dashed #e5e7eb;
+  padding-top: 8px;
+  margin-top: 10px;
+}
+
+.shipper-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.shipper-btn {
+  width: 100%;
+  padding: 12px;
+  font-weight: 900;
+  border-radius: 14px;
+}
+

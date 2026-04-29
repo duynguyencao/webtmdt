@@ -9,13 +9,22 @@ const userSchema = new mongoose.Schema({
   phone: { type: String, default: '', trim: true },
   address: {
     line1: { type: String, default: '', trim: true },
+    // Lưu mã hành chính để đồng nhất dữ liệu
+    cityCode: { type: String, default: '', trim: true },
+    districtCode: { type: String, default: '', trim: true },
+    wardCode: { type: String, default: '', trim: true },
+    // Lưu tên để hiển thị nhanh (không phải gọi API hành chính khi render)
+    cityName: { type: String, default: '', trim: true },
+    districtName: { type: String, default: '', trim: true },
+    wardName: { type: String, default: '', trim: true },
+    // Legacy fields (giữ tương thích dữ liệu cũ)
     city: { type: String, default: '', trim: true },
     district: { type: String, default: '', trim: true },
     ward: { type: String, default: '', trim: true }
   },
   role: {
     type: String,
-    enum: ['buyer', 'admin'],
+    enum: ['buyer', 'admin', 'shipper'],
     default: 'buyer'
   }
 }, { timestamps: true })

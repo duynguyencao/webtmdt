@@ -12,6 +12,9 @@ const CATEGORIES = [
 const Header = ({ user: userProp }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [suggestions, setSuggestions] = useState([])
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  const [suggestLoading, setSuggestLoading] = useState(false)
   const [user, setUser] = useState(userProp ?? null)
   const [availableCategoryValues, setAvailableCategoryValues] = useState([])
   const { getTotalItems } = useCart()
@@ -62,13 +65,32 @@ const Header = ({ user: userProp }) => {
     if (searchQuery.trim()) {
       navigate(`/products?search=${searchQuery}`)
       setSearchQuery('')
+      setSuggestOpen(false)
     }
   }
+
+  // Auto-suggest (debounce 300ms)
+  useEffect(() => {
+    if (!suggestOpen) return
+    const q = searchQuery.trim()
+    if (!q) {
+      setSuggestions([])
+      return
+    }
+    setSuggestLoading(true)
+    const t = setTimeout(() => {
+      api.getProductSuggestions(q, 8)
+        .then((list) => setSuggestions(Array.isArray(list) ? list : []))
+        .catch(() => setSuggestions([]))
+        .finally(() => setSuggestLoading(false))
+    }, 300)
+    return () => clearTimeout(t)
+  }, [searchQuery, suggestOpen])
 
   const isAdmin = user?.role === 'admin'
 
   return (
-    <header className="header">
+    <header className="header" onClick={() => setSuggestOpen(false)}>
       <div className="header-top">
         <div className="container">
           <div className="header-top-content">
@@ -113,17 +135,48 @@ const Header = ({ user: userProp }) => {
             </Link>
 
             {!isAdmin && (
-              <form className="search-form" onSubmit={handleSearch}>
+              <form className="search-form" onSubmit={handleSearch} onClick={(e) => e.stopPropagation()}>
                 <input
                   type="text"
                   placeholder="Tìm kiếm sản phẩm..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    setSuggestOpen(true)
+                  }}
+                  onFocus={() => setSuggestOpen(true)}
                   className="search-input"
                 />
                 <button type="submit" className="search-btn">
                   <FiSearch />
                 </button>
+
+                {suggestOpen && (suggestions.length > 0 || suggestLoading) && (
+                  <div className="search-suggest">
+                    {suggestLoading && <div className="search-suggest-item muted">Đang tìm...</div>}
+                    {!suggestLoading && suggestions.map((p) => (
+                      <button
+                        type="button"
+                        key={p.id}
+                        className="search-suggest-item"
+                        onClick={() => {
+                          navigate(`/products/${p.id}`)
+                          setSuggestOpen(false)
+                          setSearchQuery('')
+                        }}
+                      >
+                        <img src={p.image} alt="" className="search-suggest-thumb" />
+                        <div className="search-suggest-meta">
+                          <div className="search-suggest-name">{p.name}</div>
+                          <div className="search-suggest-sub">{p.brand}</div>
+                        </div>
+                        <div className="search-suggest-price">
+                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.price || 0)}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </form>
             )}
 

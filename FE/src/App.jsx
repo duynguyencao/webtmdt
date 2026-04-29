@@ -23,6 +23,8 @@ import MyOrderDetail from './pages/MyOrderDetail'
 import ComingSoon from './pages/ComingSoon'
 import Contact from './pages/Contact'
 import Account from './pages/Account'
+import Shipper from './pages/Shipper'
+import PayOSCancel from './pages/PayOSCancel'
 import { CartProvider } from './context/CartContext'
 
 function App() {
@@ -47,13 +49,14 @@ function App() {
 
   if (authUser === undefined) return null
   const isAdmin = authUser?.role === 'admin'
+  const isShipper = authUser?.role === 'shipper'
 
   return (
     <CartProvider>
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <div className="App">
           <ScrollToTop />
-          {!isAdmin && <Header user={authUser} />}
+          {!isAdmin && !isShipper && <Header user={authUser} />}
           <main>
             <Routes>
               {isAdmin ? (
@@ -68,6 +71,15 @@ function App() {
                 </>
               ) : (
                 <>
+                  {isShipper ? (
+                    <>
+                      <Route path="/shipper" element={<Shipper />} />
+                      <Route path="/login" element={<Navigate to="/shipper" replace />} />
+                      <Route path="/" element={<Navigate to="/shipper" replace />} />
+                      <Route path="*" element={<Navigate to="/shipper" replace />} />
+                    </>
+                  ) : (
+                    <>
                   <Route path="/" element={<Home />} />
                   <Route path="/products" element={<Products />} />
                   <Route path="/products/:id" element={<ProductDetail />} />
@@ -78,17 +90,20 @@ function App() {
                   <Route path="/verify-email" element={<VerifyEmail />} />
                   <Route path="/orders" element={<MyOrders />} />
                   <Route path="/orders/:orderId" element={<MyOrderDetail />} />
+                  <Route path="/payos/cancel" element={<PayOSCancel />} />
                   <Route path="/account" element={<Account />} />
                   <Route path="/track-order" element={<ComingSoon />} />
                   <Route path="/news" element={<ComingSoon />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/admin/*" element={<Navigate to="/" replace />} />
+                    </>
+                  )}
                 </>
               )}
             </Routes>
           </main>
-          {!isAdmin && <Footer />}
-          {!isAdmin && <ChatBot />}
+          {!isAdmin && !isShipper && <Footer />}
+          {!isAdmin && !isShipper && <ChatBot />}
           <CartToast />
         </div>
       </Router>

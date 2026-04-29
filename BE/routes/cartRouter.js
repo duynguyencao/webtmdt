@@ -2,32 +2,30 @@ import { Router } from 'express'
 import Cart from '../models/Cart.js'
 import Product from '../models/Product.js'
 import { verifyToken } from '../middleware/auth.js'
+import { validateBody } from '../validation/validate.js'
+import { cartReplaceSchema, cartItemUpsertSchema } from '../validation/schemas.js'
 
 const router = Router()
 
-const defaultSkuForProductId = (productId) => `P${productId}-DEFAULT`
+const defaultSkuForProductId = (productId) => `P${productId}-DEFAULT` // legacy
 
 const expandCartItems = async (items = []) => {
   const productIds = [...new Set(items.map((it) => Number(it.productId)).filter((x) => Number.isFinite(x)))]
   const products = await Product.find({ id: { $in: productIds }, isDeleted: { $ne: true } })
-    .select('id name brand image images price originalPrice sale variants')
+    .select('id name brand image images price originalPrice sale stock')
     .lean()
   const map = new Map(products.map((p) => [p.id, p]))
 
   const expanded = items.map((it) => {
     const pid = Number(it.productId)
-    const sku = String(it.sku || '').trim() || defaultSkuForProductId(pid)
     const p = map.get(pid)
     if (!p) return null
-    const variants = Array.isArray(p.variants) ? p.variants : []
-    const v = variants.find((x) => String(x.sku || '').trim() === sku) || variants[0] || null
-    const stock = v ? Math.max(0, Number(v.stock) || 0) : 0
-    const unitPrice = v && v.priceOverride != null ? (Number(v.priceOverride) || 0) : (Number(p.price) || 0)
+    const stock = Math.max(0, Number(p.stock) || 0)
+    const unitPrice = Number(p.price) || 0
     const images = Array.isArray(p.images) ? p.images : []
     const image = p.image || images[0] || ''
     return {
       id: pid,
-      sku,
       name: p.name,
       brand: p.brand,
       image,
@@ -36,7 +34,7 @@ const expandCartItems = async (items = []) => {
       sale: p.sale,
       stock,
       quantity: Math.max(1, Number(it.quantity) || 1),
-      addOn: it.addOn || null
+      addOn: null
     }
   }).filter(Boolean)
 
@@ -49,15 +47,8 @@ const normalizeIncomingItems = (items = []) => {
     .map((it) => {
       const productId = it?.productId != null ? Number(it.productId) : (it?.id != null ? Number(it.id) : null)
       if (productId == null || Number.isNaN(productId)) return null
-      const sku = String(it?.sku || '').trim() || defaultSkuForProductId(productId)
       const quantity = Math.max(1, Math.floor(Number(it?.quantity) || 1))
-      const addOn = it?.addOn && typeof it.addOn === 'object'
-        ? {
-          stringId: String(it.addOn.stringId || '').trim(),
-          tensionKg: Number(it.addOn.tensionKg) || 0
-        }
-        : undefined
-      return { productId, sku, quantity, addOn }
+      return { productId, sku: defaultSkuForProductId(productId), quantity, addOn: undefined }
     })
     .filter(Boolean)
 }
@@ -75,7 +66,7 @@ router.get('/', verifyToken, async (req, res) => {
 })
 
 // PUT /api/cart — replace toàn bộ giỏ hàng
-router.put('/', verifyToken, async (req, res) => {
+router.put('/', verifyToken, validateBody(cartReplaceSchema), async (req, res) => {
   try {
     const incoming = normalizeIncomingItems(req.body?.items || [])
     const cart = await Cart.findOneAndUpdate(
@@ -91,7 +82,7 @@ router.put('/', verifyToken, async (req, res) => {
 })
 
 // POST /api/cart/items — add/update 1 item
-router.post('/items', verifyToken, async (req, res) => {
+router.post('/items', verifyToken, validateBody(cartItemUpsertSchema), async (req, res) => {
   try {
     const incoming = normalizeIncomingItems([req.body])[0]
     if (!incoming) return res.status(400).json({ error: 'Item không hợp lệ' })
@@ -103,10 +94,9 @@ router.post('/items', verifyToken, async (req, res) => {
       return res.status(201).json({ message: 'Đã thêm vào giỏ hàng', items: expanded })
     }
 
-    const idx = (cart.items || []).findIndex((x) => x.productId === incoming.productId && x.sku === incoming.sku)
+    const idx = (cart.items || []).findIndex((x) => x.productId === incoming.productId)
     if (idx >= 0) {
       cart.items[idx].quantity = incoming.quantity
-      cart.items[idx].addOn = incoming.addOn
     } else {
       cart.items.push(incoming)
     }
@@ -122,11 +112,10 @@ router.post('/items', verifyToken, async (req, res) => {
 router.delete('/items/:productId/:sku', verifyToken, async (req, res) => {
   try {
     const productId = Number(req.params.productId)
-    const sku = String(req.params.sku || '').trim()
-    if (!productId || !sku) return res.status(400).json({ error: 'Thiếu productId hoặc sku' })
+    if (!productId) return res.status(400).json({ error: 'Thiếu productId' })
     const cart = await Cart.findOne({ userId: req.userId })
     if (!cart) return res.json({ message: 'OK', items: [] })
-    cart.items = (cart.items || []).filter((x) => !(x.productId === productId && x.sku === sku))
+    cart.items = (cart.items || []).filter((x) => !(x.productId === productId))
     await cart.save()
     const expanded = await expandCartItems(cart.items)
     return res.json({ message: 'Đã xóa khỏi giỏ hàng', items: expanded })

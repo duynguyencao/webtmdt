@@ -36,7 +36,15 @@ const AdminProducts = () => {
   const [stockFilter, setStockFilter] = useState('all')
   const [sortKey, setSortKey] = useState('id_desc')
   const [currentPage, setCurrentPage] = useState(1)
-  const pageSize = 10
+  const [pageSize, setPageSize] = useState(() => (window.innerWidth <= 640 ? 6 : 10))
+
+  useEffect(() => {
+    const onResize = () => {
+      setPageSize(window.innerWidth <= 640 ? 6 : 10)
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   useEffect(() => {
     api.getMe()

@@ -23,6 +23,14 @@ export const api = {
     return request(`/api/products/${id}`)
   },
 
+  getProductSuggestions(query, limit = 8) {
+    const q = new URLSearchParams({
+      query: String(query || '').trim(),
+      limit: String(limit)
+    }).toString()
+    return request(`/api/products/suggestions?${q}`)
+  },
+
   getBestSellers(limit = 8) {
     return request(`/api/products/best-sellers?limit=${encodeURIComponent(limit)}`)
   },
@@ -61,6 +69,17 @@ export const api = {
     })
   },
 
+  getOrderPaymentLink(orderId) {
+    return request(`/api/orders/${encodeURIComponent(orderId)}/payment-link`, { headers: { ...this._authHeaders() } })
+  },
+
+  cancelPayOSAndDeleteOrder(orderId) {
+    return request(`/api/orders/${encodeURIComponent(orderId)}/cancel-payos-and-delete`, {
+      method: 'PATCH',
+      headers: { ...this._authHeaders() }
+    })
+  },
+
   getCart() {
     return request('/api/cart', { headers: { ...this._authHeaders() } })
   },
@@ -82,6 +101,21 @@ export const api = {
       method: 'POST',
       headers: { ...this._authHeaders() },
       body: JSON.stringify(body)
+    })
+  },
+
+  updateReview(reviewId, body) {
+    return request(`/api/reviews/${encodeURIComponent(reviewId)}`, {
+      method: 'PUT',
+      headers: { ...this._authHeaders() },
+      body: JSON.stringify(body || {})
+    })
+  },
+
+  deleteReview(reviewId) {
+    return request(`/api/reviews/${encodeURIComponent(reviewId)}`, {
+      method: 'DELETE',
+      headers: { ...this._authHeaders() }
     })
   },
 
@@ -174,6 +208,37 @@ export const api = {
     return request(`/api/orders/${encodeURIComponent(orderId)}/cancel-by-buyer`, {
       method: 'PATCH',
       headers: { ...this._authHeaders() }
+    })
+  },
+
+  // Shipper APIs
+  getShipperAvailableOrders() {
+    return request('/api/orders/shipper/available', { headers: { ...this._authHeaders() } })
+  },
+
+  getShipperMyTasks() {
+    return request('/api/orders/shipper/my-tasks', { headers: { ...this._authHeaders() } })
+  },
+
+  pickupOrder(orderId) {
+    return request(`/api/orders/${encodeURIComponent(orderId)}/pickup`, {
+      method: 'PATCH',
+      headers: { ...this._authHeaders() }
+    })
+  },
+
+  deliverOrder(orderId) {
+    return request(`/api/orders/${encodeURIComponent(orderId)}/deliver`, {
+      method: 'PATCH',
+      headers: { ...this._authHeaders() }
+    })
+  },
+
+  failOrder(orderId, action = 'return') {
+    return request(`/api/orders/${encodeURIComponent(orderId)}/fail`, {
+      method: 'PATCH',
+      headers: { ...this._authHeaders() },
+      body: JSON.stringify({ action })
     })
   },
 

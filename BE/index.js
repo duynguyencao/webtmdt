@@ -7,6 +7,8 @@ dotenv.config({ path: path.join(__dirname, '.env') })
 
 import express from 'express'
 import cors from 'cors'
+import helmet from 'helmet'
+import rateLimit from 'express-rate-limit'
 import { connectDB } from './db/dbConnect.js'
 import productRouter from './routes/productRouter.js'
 import userRouter from './routes/userRouter.js'
@@ -35,7 +37,19 @@ connectDB()
     console.error('Không thể kết nối MongoDB. Chạy MongoDB và thử lại.', err.message)
   })
 
+app.set('trust proxy', 1)
 app.use(cors({ origin: true }))
+app.use(helmet({
+  crossOriginResourcePolicy: false
+}))
+
+// Rate limit tầng app (chặn spam chung). Các endpoint nhạy cảm có limiter riêng.
+app.use(rateLimit({
+  windowMs: 60 * 1000,
+  limit: 240,
+  standardHeaders: true,
+  legacyHeaders: false
+}))
 app.use(express.json())
 
 app.get('/', (req, res) => {

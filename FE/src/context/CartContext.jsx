@@ -52,9 +52,7 @@ export const CartProvider = ({ children }) => {
 
     const payload = cartItems.map((it) => ({
       productId: Number(it.id),
-      sku: String(it.sku || '').trim() || `P${it.id}-DEFAULT`,
       quantity: Math.max(1, Number(it.quantity) || 1),
-      addOn: it.addOn || undefined
     }))
     const json = JSON.stringify(payload)
     if (lastSyncedRef.current === json) return
@@ -87,53 +85,40 @@ export const CartProvider = ({ children }) => {
 
   const addToCart = (product, quantity = 1) => {
     setCartItems(prevItems => {
-      const sku = String(product?.sku || '').trim() || `P${product.id}-DEFAULT`
-      const key = JSON.stringify(product?.addOn || null)
-      const existingItem = prevItems.find(item =>
-        item.id === product.id &&
-        String(item.sku || '').trim() === sku &&
-        JSON.stringify(item?.addOn || null) === key
-      )
+      const existingItem = prevItems.find(item => item.id === product.id)
       if (existingItem) {
         return prevItems.map(item =>
-          (item.id === product.id && String(item.sku || '').trim() === sku && JSON.stringify(item?.addOn || null) === key)
+          (item.id === product.id)
             ? { ...item, quantity: item.quantity + quantity }
             : item
         )
       }
-      return [...prevItems, { ...product, sku, quantity }]
+      return [...prevItems, { ...product, quantity }]
     })
     setToastMessage(`Da them ${quantity} x ${product.name} vao gio hang`)
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
     toastTimeoutRef.current = setTimeout(() => setToastMessage(''), 2000)
   }
 
-  const removeFromCart = (productId, sku = null, addOn = null) => {
-    if (!sku) {
-      setCartItems(prevItems => prevItems.filter(item => item.id !== productId))
-      return
-    }
-    const key = addOn === undefined ? null : addOn
-    setCartItems(prevItems => prevItems.filter(item => !(
-      item.id === productId &&
-      String(item.sku || '').trim() === String(sku).trim() &&
-      (addOn == null || JSON.stringify(item?.addOn || null) === JSON.stringify(key))
-    )))
+  const removeFromCart = (productId) => {
+    setCartItems(prevItems => prevItems.filter(item => item.id !== productId))
   }
 
-  const updateQuantity = (productId, quantity, sku = null, addOn = null) => {
+  const updateQuantity = (productId, quantity) => {
     if (quantity <= 0) {
-      removeFromCart(productId, sku, addOn)
+      removeFromCart(productId)
       return
     }
     setCartItems(prevItems =>
-      prevItems.map(item =>
-        (item.id === productId &&
-          (!sku || String(item.sku || '').trim() === String(sku).trim()) &&
-          (addOn == null || JSON.stringify(item?.addOn || null) === JSON.stringify(addOn)))
-          ? { ...item, quantity }
-          : item
-      )
+      prevItems.map(item => {
+        const isMatch = item.id === productId
+
+        if (!isMatch) return item
+
+        const stock = Number(item?.stock)
+        const safeQty = Number.isFinite(stock) && stock >= 0 ? Math.min(quantity, Math.max(1, stock)) : quantity
+        return { ...item, quantity: safeQty }
+      })
     )
   }
 

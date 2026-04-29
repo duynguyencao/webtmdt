@@ -76,11 +76,13 @@
   top: 100px;
   max-height: calc(100vh - 120px);
   overflow-y: auto;
-  scrollbar-width: none; /* Ẩn scrollbar trên Firefox */
+  scrollbar-width: none;
+  /* Ẩn scrollbar trên Firefox */
 }
 
 .filters-sidebar::-webkit-scrollbar {
-  display: none; /* Ẩn scrollbar trên Chrome/Safari/Edge */
+  display: none;
+  /* Ẩn scrollbar trên Chrome/Safari/Edge */
 }
 
 .filters-header {

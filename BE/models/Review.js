@@ -3,12 +3,14 @@ import mongoose from 'mongoose'
 const reviewSchema = new mongoose.Schema({
   productId: { type: Number, required: true, index: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  // Mỗi lần mua (orderId) chỉ được đánh giá 1 lần cho 1 sản phẩm
+  orderId: { type: String, required: true, trim: true, index: true },
   rating: { type: Number, required: true, min: 1, max: 5 },
   comment: { type: String, default: '', trim: true },
   verified: { type: Boolean, default: false }
 }, { timestamps: true })
 
-reviewSchema.index({ productId: 1, userId: 1 }, { unique: true })
+reviewSchema.index({ productId: 1, userId: 1, orderId: 1 }, { unique: true })
 
 reviewSchema.set('toJSON', {
   transform: (doc, ret) => {

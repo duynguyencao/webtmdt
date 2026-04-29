@@ -19,14 +19,19 @@ const orderItemSchema = new mongoose.Schema({
 const orderSchema = new mongoose.Schema({
   orderId: { type: String, required: true, unique: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  // Shipper đang giữ đơn (nếu có)
+  shipperId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   customer: {
     name: String,
     phone: String,
     email: String,
     address: String,
     city: String,
+    cityName: String,
     district: String,
-    ward: String
+    districtName: String,
+    ward: String,
+    wardName: String
   },
   items: [orderItemSchema],
   subtotal: { type: Number, default: 0 },
@@ -43,6 +48,8 @@ const orderSchema = new mongoose.Schema({
   payosOrderCode: { type: Number, default: null },
   payosPaymentLinkId: { type: String, default: null },
   payosReference: { type: String, default: null },
+  // Lưu checkoutUrl để "thanh toán lại" không phải tạo link mới
+  payosCheckoutUrl: { type: String, default: null },
   status: {
     type: String,
     enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],

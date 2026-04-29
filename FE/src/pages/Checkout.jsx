@@ -26,9 +26,12 @@ const Checkout = () => {
     phone: '',
     email: '',
     address: '',
-    city: '',
-    district: '',
-    ward: '',
+    cityCode: '',
+    districtCode: '',
+    wardCode: '',
+    cityName: '',
+    districtName: '',
+    wardName: '',
     paymentMethod: 'cod',
     note: ''
   })
@@ -58,9 +61,9 @@ const Checkout = () => {
             phone: p.phone || saved.phone || '',
             email: p.email || saved.email || '',
             address: p.address || saved.address || '',
-            city: p.city || saved.city || '',
-            district: p.district || saved.district || '',
-            ward: p.ward || saved.ward || ''
+            cityName: p.cityName || saved.cityName || saved.city || '',
+            districtName: p.districtName || saved.districtName || saved.district || '',
+            wardName: p.wardName || saved.wardName || saved.ward || ''
           }))
         }
       }
@@ -77,9 +80,12 @@ const Checkout = () => {
           phone: p.phone || u?.phone || '',
           email: p.email || u?.email || '',
           address: p.address || u?.address?.line1 || '',
-          ward: p.ward || u?.address?.ward || '',
-          district: p.district || u?.address?.district || '',
-          city: p.city || u?.address?.city || ''
+          cityCode: p.cityCode || u?.address?.cityCode || '',
+          districtCode: p.districtCode || u?.address?.districtCode || '',
+          wardCode: p.wardCode || u?.address?.wardCode || '',
+          wardName: p.wardName || u?.address?.wardName || u?.address?.ward || '',
+          districtName: p.districtName || u?.address?.districtName || u?.address?.district || '',
+          cityName: p.cityName || u?.address?.cityName || u?.address?.city || ''
         }))
       })
       .catch(() => {})
@@ -123,22 +129,32 @@ const Checkout = () => {
     try {
       const shippingFee = Math.max(0, Number(shippingQuote?.fee) || 0)
       const total = Math.max(0, getTotalPrice() - (appliedCoupon?.discount || 0) + shippingFee)
+      const addressText = [
+        formData.address,
+        formData.wardName,
+        formData.districtName,
+        formData.cityName
+      ].filter(Boolean).join(', ')
       const res = await api.createOrder({
         customer: {
           name: formData.name,
           phone: formData.phone,
           email: formData.email,
-          address: [formData.address, formData.ward, formData.district, formData.city].filter(Boolean).join(', ')
+          address: addressText,
+          city: formData.cityCode || undefined,
+          district: formData.districtCode || undefined,
+          ward: formData.wardCode || undefined,
+          cityName: formData.cityName || undefined,
+          districtName: formData.districtName || undefined,
+          wardName: formData.wardName || undefined
         },
-        items: cartItems.map(({ id, sku, quantity, addOn }) => ({
+        items: cartItems.map(({ id, quantity }) => ({
           id: Number(id),
-          sku: String(sku || '').trim() || undefined,
           quantity: Number(quantity) || 1,
-          addOn: addOn || undefined
         })),
         couponCode: appliedCoupon?.code || undefined,
         paymentMethod: formData.paymentMethod,
-        note: formData.note
+        note: String(formData.note || '').trim() ? String(formData.note).trim() : undefined
       })
       const totalAmount = total
       setOrderId(res.orderId)
@@ -177,16 +193,16 @@ const Checkout = () => {
 
   useEffect(() => {
     if (!authChecked) return
-    if (!formData.city || !formData.district || !formData.ward) return
+    if (!formData.cityCode || !formData.districtCode || !formData.wardCode) return
     api.getShippingQuote({
-      city: formData.city,
-      district: formData.district,
-      ward: formData.ward,
+      city: formData.cityCode,
+      district: formData.districtCode,
+      ward: formData.wardCode,
       itemsCount: cartItems.length
     })
       .then((q) => setShippingQuote(q))
       .catch(() => setShippingQuote({ fee: 0, provider: 'manual' }))
-  }, [authChecked, formData.city, formData.district, formData.ward, cartItems.length])
+  }, [authChecked, formData.cityCode, formData.districtCode, formData.wardCode, cartItems.length])
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -301,9 +317,12 @@ const Checkout = () => {
                     />
                   </div>
                   <VnAddressSelect
-                    city={formData.city}
-                    district={formData.district}
-                    ward={formData.ward}
+                    city={formData.cityName}
+                    district={formData.districtName}
+                    ward={formData.wardName}
+                    cityCode={formData.cityCode}
+                    districtCode={formData.districtCode}
+                    wardCode={formData.wardCode}
                     onChange={(patch) => setFormData((p) => ({ ...p, ...patch }))}
                   />
                 </div>

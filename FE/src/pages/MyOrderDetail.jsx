@@ -32,6 +32,8 @@ const MyOrderDetail = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [cancelling, setCancelling] = useState(false)
+  const [payosLoading, setPayosLoading] = useState(false)
+  const [payosError, setPayosError] = useState(null)
 
   const loadOrder = () => api.getOrderDetail(orderId).then(setOrder)
 
@@ -57,6 +59,22 @@ const MyOrderDetail = () => {
       alert(err.message || 'Không hủy được đơn')
     } finally {
       setCancelling(false)
+    }
+  }
+
+  const handlePayOSRetry = async () => {
+    if (payosLoading) return
+    setPayosLoading(true)
+    setPayosError(null)
+    try {
+      const resp = await api.getOrderPaymentLink(orderId)
+      const url = resp?.paymentUrl
+      if (!url) throw new Error('Không lấy được link PayOS. Vui lòng thử lại sau.')
+      window.location.href = url
+    } catch (err) {
+      setPayosError(err.message || 'Không thể mở PayOS để thanh toán lại')
+    } finally {
+      setPayosLoading(false)
     }
   }
 
@@ -150,6 +168,17 @@ const MyOrderDetail = () => {
                     <td>
                       <div className="my-order-detail-item-name">{item.name}</div>
                       {item.brand && <div className="my-order-detail-item-brand">{item.brand}</div>}
+                      {(order.status || 'pending') === 'delivered' && item?.id != null && (
+                        <div style={{ marginTop: 8 }}>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={() => navigate(`/products/${Number(item.id)}?orderId=${encodeURIComponent(order.orderId)}#reviews`)}
+                          >
+                            Đánh giá / Sửa đánh giá
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td>{formatPrice(item.price)}</td>
                     <td>{item.quantity ?? 1}</td>
@@ -168,6 +197,15 @@ const MyOrderDetail = () => {
             <p className="my-order-detail-bank-note">
               Bạn có thể mở lại PayOS từ màn hình thanh toán trước đó. Hiện tại, hệ thống đang chờ webhook cập nhật trạng thái.
             </p>
+            {payosError && <p className="my-order-detail-error">{payosError}</p>}
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handlePayOSRetry}
+              disabled={payosLoading}
+            >
+              {payosLoading ? 'Đang lấy link PayOS...' : 'Thanh toán lại'}
+            </button>
           </div>
         )}
 

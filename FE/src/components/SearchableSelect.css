@@ -1,0 +1,108 @@
+.ss {
+  position: relative;
+  width: 100%;
+}
+
+.ss-label {
+  font-weight: 600;
+  color: var(--text-dark);
+  font-size: 0.9375rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.ss-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.75rem;
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--white);
+  transition: var(--transition);
+  min-height: 48px;
+}
+
+.ss-control:hover {
+  border-color: rgba(230, 57, 70, 0.45);
+}
+
+.ss-open {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.1);
+}
+
+.ss-input {
+  /* Override global `.form-group input` styles (border/padding/shadow) */
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  width: 100%;
+  font-size: 1rem;
+  font-family: inherit;
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: 1.2;
+  min-width: 0;
+}
+
+.ss-input::placeholder {
+  color: var(--text-light);
+}
+
+.ss-chevron {
+  color: var(--text-light);
+  font-size: 0.9rem;
+  flex: 0 0 auto;
+}
+
+.ss-menu {
+  position: absolute;
+  z-index: 1500;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--white);
+  box-shadow: var(--shadow);
+  max-height: 280px;
+  overflow: auto;
+  padding: 6px;
+}
+
+.ss-option {
+  width: 100%;
+  text-align: left;
+  padding: 10px 10px;
+  border: 0;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text-dark);
+}
+
+.ss-option:hover,
+.ss-option.active {
+  background: var(--accent-color);
+}
+
+.ss-option.selected {
+  font-weight: 700;
+}
+
+.ss-empty {
+  padding: 12px 10px;
+  color: var(--text-light);
+}
+
+.ss-disabled .ss-control {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ss-disabled .ss-input {
+  cursor: not-allowed;
+}
+

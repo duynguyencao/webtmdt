@@ -9,6 +9,7 @@
     "dev": "node --watch index.js",
     "seed": "node seed/index.js",
     "make-admin": "node scripts/makeAdmin.js",
+    "make-shipper": "node scripts/makeShipper.js",
     "migrate:variants": "node scripts/migrateProductVariants.js"
   },
   "dependencies": {
@@ -19,6 +20,7 @@
     "dotenv": "^16.6.1",
     "express": "^4.18.2",
     "express-rate-limit": "^8.4.1",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.0.3",
     "node-cron": "^4.2.1",

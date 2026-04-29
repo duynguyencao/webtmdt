@@ -23,7 +23,11 @@ const Login = () => {
     try {
       const res = await api.login(formData.email, formData.password)
       api.setToken(res.token)
-      navigate(redirect.startsWith('/') ? redirect : '/', { replace: true })
+      if (res?.user?.role === 'shipper') {
+        navigate('/shipper', { replace: true })
+      } else {
+        navigate(redirect.startsWith('/') ? redirect : '/', { replace: true })
+      }
       window.location.reload()
     } catch (err) {
       setError(err.message || 'Đăng nhập thất bại')

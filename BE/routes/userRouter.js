@@ -195,6 +195,13 @@ router.put('/me', verifyToken, async (req, res) => {
     const name = req.body?.name != null ? String(req.body.name).trim() : null
     const phone = req.body?.phone != null ? String(req.body.phone).trim() : null
     const addressLine1 = req.body?.addressLine1 != null ? String(req.body.addressLine1).trim() : null
+    const cityCode = req.body?.cityCode != null ? String(req.body.cityCode).trim() : null
+    const districtCode = req.body?.districtCode != null ? String(req.body.districtCode).trim() : null
+    const wardCode = req.body?.wardCode != null ? String(req.body.wardCode).trim() : null
+    const cityName = req.body?.cityName != null ? String(req.body.cityName).trim() : null
+    const districtName = req.body?.districtName != null ? String(req.body.districtName).trim() : null
+    const wardName = req.body?.wardName != null ? String(req.body.wardName).trim() : null
+    // Backward-compat (cũ)
     const city = req.body?.city != null ? String(req.body.city).trim() : null
     const district = req.body?.district != null ? String(req.body.district).trim() : null
     const ward = req.body?.ward != null ? String(req.body.ward).trim() : null
@@ -205,6 +212,13 @@ router.put('/me', verifyToken, async (req, res) => {
     }
     if (phone !== null) user.phone = phone
     if (addressLine1 !== null) user.address.line1 = addressLine1
+    if (cityCode !== null) user.address.cityCode = cityCode
+    if (districtCode !== null) user.address.districtCode = districtCode
+    if (wardCode !== null) user.address.wardCode = wardCode
+    if (cityName !== null) user.address.cityName = cityName
+    if (districtName !== null) user.address.districtName = districtName
+    if (wardName !== null) user.address.wardName = wardName
+    // Legacy fields vẫn set nếu client cũ gửi
     if (city !== null) user.address.city = city
     if (district !== null) user.address.district = district
     if (ward !== null) user.address.ward = ward

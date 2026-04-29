@@ -12,6 +12,7 @@ import { orderCreateSchema } from '../validation/schemas.js'
 
 const router = Router()
 
+// Legacy helper (variants) – giữ để tương thích dữ liệu cũ, nhưng luồng mua hàng hiện dùng Product.stock
 const defaultSkuForProductId = (productId) => `P${productId}-DEFAULT`
 
 const orderLimiter = rateLimit({
@@ -33,10 +34,232 @@ const createPayOSClient = () => {
 
 const getReturnCancelUrls = (req, orderId) => {
   const origin = String(req.headers.origin || process.env.FE_BASE_URL || '').trim().replace(/\/$/, '')
-  const base = origin || 'http://localhost:5173'
-  const url = `${base}/orders/${encodeURIComponent(orderId)}`
-  return { returnUrl: url, cancelUrl: url }
+  const base = origin || 'http://localhost:3000'
+  const returnUrl = `${base}/orders/${encodeURIComponent(orderId)}`
+  // Khi user bấm "Hủy thanh toán" trên PayOS => redirect về FE route để tự động hủy + xóa đơn
+  const cancelUrl = `${base}/payos/cancel?orderId=${encodeURIComponent(orderId)}`
+  return { returnUrl, cancelUrl }
 }
+
+// =========================
+// Shipper APIs
+// =========================
+
+// GET /api/orders/shipper/available — đơn đã xác nhận, chưa có shipper
+router.get('/shipper/available', verifyToken, requireRole('shipper'), async (req, res) => {
+  try {
+    const list = await Order.find({ status: 'confirmed', shipperId: null }).sort({ createdAt: -1 }).lean()
+    const json = list.map(({ _id, __v, ...rest }) => ({ ...rest, status: rest.status || 'pending', paymentStatus: rest.paymentStatus ?? null }))
+    res.json(json)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/orders/shipper/my-tasks — đơn shipper đang giữ (đang giao)
+router.get('/shipper/my-tasks', verifyToken, requireRole('shipper'), async (req, res) => {
+  try {
+    const list = await Order.find({ status: 'shipped', shipperId: req.userId }).sort({ createdAt: -1 }).lean()
+    const json = list.map(({ _id, __v, ...rest }) => ({ ...rest, status: rest.status || 'pending', paymentStatus: rest.paymentStatus ?? null }))
+    res.json(json)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PATCH /api/orders/:orderId/pickup — nhận đơn: confirmed -> shipped + gắn shipperId
+router.patch('/:orderId/pickup', verifyToken, requireRole('shipper'), async (req, res) => {
+  try {
+    const { orderId } = req.params
+    const order = await Order.findOne({ orderId })
+    if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' })
+    if ((order.status || 'pending') !== 'confirmed') return res.status(400).json({ error: 'Chỉ nhận được đơn đã xác nhận' })
+    if (order.shipperId) return res.status(400).json({ error: 'Đơn hàng đã có shipper nhận' })
+
+    order.shipperId = req.userId
+    order.status = 'shipped'
+    await order.save()
+    res.json({ orderId, status: order.status, message: 'Đã nhận giao đơn hàng' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PATCH /api/orders/:orderId/deliver — giao thành công: shipped -> delivered; COD => paid
+router.patch('/:orderId/deliver', verifyToken, requireRole('shipper'), async (req, res) => {
+  try {
+    const { orderId } = req.params
+    const order = await Order.findOne({ orderId })
+    if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' })
+    if ((order.status || 'pending') !== 'shipped') return res.status(400).json({ error: 'Chỉ giao được đơn đang giao' })
+    if (!order.shipperId || String(order.shipperId) !== String(req.userId)) {
+      return res.status(403).json({ error: 'Bạn không giữ đơn này' })
+    }
+
+    order.status = 'delivered'
+    if (String(order.paymentMethod || '').toLowerCase() === 'cod') {
+      order.paymentStatus = 'paid'
+    }
+    await order.save()
+    res.json({ orderId, status: order.status, message: 'Đã giao thành công' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PATCH /api/orders/:orderId/fail — giao thất bại (return/cancel)
+router.patch('/:orderId/fail', verifyToken, requireRole('shipper'), async (req, res) => {
+  try {
+    const { orderId } = req.params
+    const action = String(req.body?.action || 'return').toLowerCase() // return | cancel
+    const order = await Order.findOne({ orderId })
+    if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' })
+    if ((order.status || 'pending') !== 'shipped') return res.status(400).json({ error: 'Chỉ thao tác được khi đơn đang giao' })
+    if (!order.shipperId || String(order.shipperId) !== String(req.userId)) {
+      return res.status(403).json({ error: 'Bạn không giữ đơn này' })
+    }
+
+    if (action === 'return') {
+      order.status = 'confirmed'
+      order.shipperId = null
+      await order.save()
+      return res.json({ orderId, status: order.status, message: 'Đã trả đơn về trạng thái chờ shipper khác' })
+    }
+
+    if (action !== 'cancel') return res.status(400).json({ error: 'action chỉ hỗ trợ: return, cancel' })
+    if (order.paymentStatus === 'paid' && String(order.paymentMethod || '').toLowerCase() === 'payos') {
+      return res.status(400).json({ error: 'Đơn PayOS đã thanh toán không thể hủy bằng shipper' })
+    }
+
+    // Hoàn kho theo stock (1 biến thể duy nhất)
+    for (const item of (order.items || [])) {
+      const productId = item.id != null ? Number(item.id) : null
+      if (productId == null) continue
+      const qty = Math.max(0, Number(item.quantity) || 0)
+      if (!qty) continue
+      await Product.updateOne(
+        { id: productId, isDeleted: { $ne: true } },
+        { $inc: { stock: qty } }
+      )
+    }
+
+    // Hoàn coupon nếu đã consume và chưa paid (an toàn)
+    if (order.couponCode && order.couponConsumed && order.paymentStatus !== 'paid') {
+      const coupon = await Coupon.findOne({ code: order.couponCode })
+      if (coupon) {
+        coupon.usedCount = Math.max(0, (coupon.usedCount || 0) - 1)
+        await coupon.save()
+        order.couponConsumed = false
+      }
+    }
+
+    order.status = 'cancelled'
+    await order.save()
+    return res.json({ orderId, status: order.status, message: 'Đã hủy đơn và hoàn kho' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/orders/:orderId/payment-link — buyer lấy lại link PayOS để thanh toán tiếp
+router.get('/:orderId/payment-link', (req, res, next) => {
+  if (req.headers['x-api-key']) return res.status(401).json({ error: 'Dùng Bearer token đăng nhập' })
+  next()
+}, verifyToken, async (req, res) => {
+  try {
+    const { orderId } = req.params
+    const order = await Order.findOne({ orderId })
+    if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' })
+    const isAdmin = req.userRole === 'admin'
+    const isOwner = order.userId && String(order.userId) === String(req.userId)
+    if (!isAdmin && !isOwner) return res.status(403).json({ error: 'Bạn không có quyền truy cập đơn hàng này' })
+
+    if (String(order.paymentMethod || '').toLowerCase() !== 'payos') {
+      return res.status(400).json({ error: 'Đơn hàng này không dùng PayOS' })
+    }
+    if (order.paymentStatus === 'paid') {
+      return res.status(400).json({ error: 'Đơn hàng đã thanh toán' })
+    }
+    if ((order.status || 'pending') === 'cancelled') {
+      return res.status(400).json({ error: 'Đơn hàng đã bị hủy' })
+    }
+
+    // Nếu đã lưu checkoutUrl từ lần tạo trước thì trả về luôn
+    const storedUrl = String(order.payosCheckoutUrl || '').trim()
+    if (storedUrl) return res.json({ orderId, paymentUrl: storedUrl })
+
+    const payOS = createPayOSClient()
+
+    // Nếu có paymentLinkId thì lấy lại checkoutUrl
+    const existingId = String(order.payosPaymentLinkId || '').trim()
+    if (existingId) {
+      try {
+        const resp = await payOS.get(`/v2/payment-requests/${encodeURIComponent(existingId)}`)
+        const data = resp?.data || resp
+        const checkoutUrl = data?.checkoutUrl || data?.data?.checkoutUrl || null
+        if (checkoutUrl) {
+          order.payosCheckoutUrl = checkoutUrl
+          await order.save()
+          return res.json({ orderId, paymentUrl: checkoutUrl })
+        }
+      } catch {
+        // fallback: tạo link mới
+      }
+    }
+
+    // Tạo link mới
+    const { returnUrl, cancelUrl } = getReturnCancelUrls(req, orderId)
+    const payosOrderCode = order.payosOrderCode ?? parseInt(String(orderId).replace(/^ORD/, ''), 10)
+    const paymentData = {
+      orderCode: payosOrderCode,
+      amount: Math.round(Number(order.total) || 0),
+      description: orderId,
+      items: (order.items || []).map((it) => ({
+        name: it.name,
+        quantity: it.quantity,
+        price: Math.round(it.price)
+      })),
+      cancelUrl,
+      returnUrl
+    }
+    let paymentLink = null
+    try {
+      paymentLink = await payOS.paymentRequests.create(paymentData)
+    } catch (err) {
+      const msg = String(err?.message || '')
+      const code = String(err?.code || err?.error?.code || '')
+      const desc = String(err?.desc || err?.error?.desc || '')
+      const data = err?.error?.data || null
+
+      // PayOS báo "đơn thanh toán đã tồn tại" (code 231).
+      // Thử lấy lại checkoutUrl từ error.data (nếu PayOS trả kèm), rồi lưu lại để các lần sau không phải gọi create nữa.
+      if (code === '231' || desc.includes('tồn tại') || msg.includes('code: 231') || msg.includes('(code: 231)')) {
+        const checkoutUrl = data?.checkoutUrl || data?.data?.checkoutUrl || null
+        const paymentLinkId = data?.paymentLinkId || data?.id || data?.data?.paymentLinkId || data?.data?.id || null
+        if (checkoutUrl) {
+          order.payosCheckoutUrl = checkoutUrl
+          if (paymentLinkId) order.payosPaymentLinkId = paymentLinkId
+          await order.save()
+          return res.json({ orderId, paymentUrl: checkoutUrl })
+        }
+        // Không có checkoutUrl trong error payload => trả lỗi rõ ràng (để admin hỗ trợ)
+        return res.status(409).json({ error: 'Đơn PayOS đã tồn tại nhưng hệ thống chưa lấy được link thanh toán. Vui lòng liên hệ shop để gửi lại link.' })
+      }
+
+      throw err
+    }
+    const paymentUrl = paymentLink?.checkoutUrl || null
+    order.payosOrderCode = payosOrderCode
+    order.payosPaymentLinkId = paymentLink?.paymentLinkId || paymentLink?.id || null
+    order.payosReference = paymentLink?.reference || null
+    order.payosCheckoutUrl = paymentUrl
+    await order.save()
+
+    return res.json({ orderId, paymentUrl })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 
 // POST /api/orders — đặt hàng (bắt buộc đăng nhập, lưu userId)
 router.post('/', orderLimiter, verifyToken, validateBody(orderCreateSchema), async (req, res) => {
@@ -89,44 +312,24 @@ router.post('/', orderLimiter, verifyToken, validateBody(orderCreateSchema), asy
       for (const item of items) {
         const productId = item?.id != null ? Number(item.id) : null
         if (productId == null) continue
-        const sku = String(item?.sku || '').trim() || defaultSkuForProductId(productId)
         const qty = Math.max(1, Math.floor(Number(item?.quantity) || 1))
 
         const product = await Product.findOne({ id: productId, isDeleted: { $ne: true } }).session(session)
         if (!product) continue
-        const variants = Array.isArray(product.variants) ? product.variants : []
-        const variant = variants.find((v) => String(v.sku || '').trim() === sku)
-        if (!variant) {
-          throw new Error(`Biến thể (SKU) không tồn tại cho sản phẩm "${product.name}"`)
-        }
-        const unitPrice = variant.priceOverride != null ? Number(variant.priceOverride) || 0 : (Number(product.price) || 0)
-
-        // Add-on đan cước (tuỳ chọn)
-        let addOn = null
-        if (item?.addOn && product.stringingAddOn?.enabled) {
-          const stringId = String(item.addOn.stringId || '').trim()
-          const tensionKg = Number(item.addOn.tensionKg) || 0
-          const list = Array.isArray(product.stringingAddOn?.strings) ? product.stringingAddOn.strings : []
-          const picked = list.find((s) => String(s.id || '').trim() === stringId)
-          if (!picked) throw new Error('Loại cước không hợp lệ')
-          addOn = {
-            stringId,
-            stringName: String(picked.name || ''),
-            tensionKg,
-            price: Math.max(0, Number(picked.price) || 0)
-          }
+        const unitPrice = Number(product.price) || 0
+        const stockNow = Math.max(0, Number(product.stock) || 0)
+        if (stockNow < qty) {
+          throw new Error(`Sản phẩm "${product.name}" đã hết hàng hoặc không đủ số lượng`)
         }
 
-        subtotal += unitPrice * qty + (addOn ? (addOn.price * qty) : 0)
+        subtotal += unitPrice * qty
         normalizedItems.push({
           id: product.id,
-          sku,
           name: product.name,
           brand: product.brand,
           image: product.image || '',
           price: unitPrice,
-          quantity: qty,
-          addOn: addOn || undefined
+          quantity: qty
         })
       }
 
@@ -145,16 +348,15 @@ router.post('/', orderLimiter, verifyToken, validateBody(orderCreateSchema), asy
         couponDoc = coupon
       }
 
-      // Trừ tồn kho atomically theo SKU (chống oversell)
+      // Trừ tồn kho atomically theo Product.stock (chống oversell)
       for (const it of normalizedItems) {
         const qty = Math.max(1, Math.floor(Number(it.quantity) || 1))
-        const sku = String(it.sku || '').trim() || defaultSkuForProductId(it.id)
         const r = await Product.updateOne(
-          { id: it.id, isDeleted: { $ne: true }, variants: { $elemMatch: { sku, stock: { $gte: qty } } } },
-          { $inc: { 'variants.$.stock': -qty } }
+          { id: it.id, isDeleted: { $ne: true }, stock: { $gte: qty } },
+          { $inc: { stock: -qty } }
         ).session(session)
         if (!r?.modifiedCount) {
-          throw new Error(`Biến thể "${sku}" đã hết hàng hoặc không đủ số lượng`)
+          throw new Error('Sản phẩm đã hết hàng hoặc không đủ số lượng')
         }
       }
 
@@ -229,6 +431,7 @@ router.post('/', orderLimiter, verifyToken, validateBody(orderCreateSchema), asy
       createdOrder.payosOrderCode = payosOrderCode
       createdOrder.payosPaymentLinkId = paymentLink?.paymentLinkId || paymentLink?.id || null
       createdOrder.payosReference = paymentLink?.reference || null
+      createdOrder.payosCheckoutUrl = paymentUrl
       await createdOrder.save()
     } catch (err) {
       // Không tạo được paymentUrl thì vẫn trả về orderId để webhook cập nhật sau (tránh mất đơn)
@@ -332,10 +535,9 @@ router.patch('/:orderId/cancel', verifyToken, requireRole('admin'), async (req, 
       if (productId == null) continue
       const qty = Math.max(0, Number(item.quantity) || 0)
       if (!qty) continue
-      const sku = String(item.sku || '').trim() || defaultSkuForProductId(productId)
       await Product.updateOne(
-        { id: productId, isDeleted: { $ne: true }, 'variants.sku': sku },
-        { $inc: { 'variants.$.stock': qty } }
+        { id: productId, isDeleted: { $ne: true } },
+        { $inc: { stock: qty } }
       )
     }
     order.status = 'cancelled'
@@ -378,15 +580,68 @@ router.patch('/:orderId/cancel-by-buyer', verifyToken, async (req, res) => {
       if (productId == null) continue
       const qty = Math.max(0, Number(item.quantity) || 0)
       if (!qty) continue
-      const sku = String(item.sku || '').trim() || defaultSkuForProductId(productId)
       await Product.updateOne(
-        { id: productId, isDeleted: { $ne: true }, 'variants.sku': sku },
-        { $inc: { 'variants.$.stock': qty } }
+        { id: productId, isDeleted: { $ne: true } },
+        { $inc: { stock: qty } }
       )
     }
     order.status = 'cancelled'
     await order.save()
     res.json({ orderId, status: order.status, message: 'Đã hủy đơn hàng' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PATCH /api/orders/:orderId/cancel-payos-and-delete
+// Khi user hủy thanh toán trên PayOS: hoàn kho + best-effort cancel payment request + xóa đơn khỏi DB.
+router.patch('/:orderId/cancel-payos-and-delete', verifyToken, async (req, res) => {
+  try {
+    const { orderId } = req.params
+    const order = await Order.findOne({ orderId })
+    if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' })
+    if (String(order.userId) !== String(req.userId)) {
+      return res.status(403).json({ error: 'Bạn không có quyền hủy đơn này' })
+    }
+    const method = String(order.paymentMethod || '').toLowerCase()
+    if (method !== 'payos') return res.status(400).json({ error: 'Đơn hàng này không dùng PayOS' })
+    if (order.paymentStatus === 'paid') return res.status(400).json({ error: 'Đơn hàng đã thanh toán' })
+    if ((order.status || 'pending') !== 'pending') return res.status(400).json({ error: 'Chỉ hủy được đơn PayOS đang chờ xác nhận' })
+
+    // Best-effort cancel payment request trên PayOS (không chặn flow nếu fail)
+    try {
+      const payOS = createPayOSClient()
+      const paymentLinkId = String(order.payosPaymentLinkId || '').trim()
+      if (paymentLinkId) {
+        await payOS.paymentRequests.cancel(paymentLinkId, 'User cancelled on checkout page')
+      }
+    } catch {
+      // ignore
+    }
+
+    // Hoàn kho theo Product.stock
+    for (const item of (order.items || [])) {
+      const productId = item.id != null ? Number(item.id) : null
+      if (productId == null) continue
+      const qty = Math.max(0, Number(item.quantity) || 0)
+      if (!qty) continue
+      await Product.updateOne(
+        { id: productId, isDeleted: { $ne: true } },
+        { $inc: { stock: qty } }
+      )
+    }
+
+    // Coupon: với PayOS chưa paid thì chưa consume (hoặc nếu có cờ consume thì hoàn lại)
+    if (order.couponCode && order.couponConsumed) {
+      const coupon = await Coupon.findOne({ code: order.couponCode })
+      if (coupon) {
+        coupon.usedCount = Math.max(0, (coupon.usedCount || 0) - 1)
+        await coupon.save()
+      }
+    }
+
+    await Order.deleteOne({ orderId })
+    return res.json({ orderId, message: 'Đã hủy thanh toán và xóa đơn hàng' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
