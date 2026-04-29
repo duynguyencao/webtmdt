@@ -135,7 +135,7 @@ router.patch('/:orderId/fail', verifyToken, requireRole('shipper'), async (req, 
       const qty = Math.max(0, Number(item.quantity) || 0)
       if (!qty) continue
       await Product.updateOne(
-        { id: productId, isDeleted: { $ne: true } },
+        { id: productId },
         { $inc: { stock: qty } }
       )
     }
@@ -153,106 +153,6 @@ router.patch('/:orderId/fail', verifyToken, requireRole('shipper'), async (req, 
     order.status = 'cancelled'
     await order.save()
     return res.json({ orderId, status: order.status, message: 'Đã hủy đơn và hoàn kho' })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// GET /api/orders/:orderId/payment-link — buyer lấy lại link PayOS để thanh toán tiếp
-router.get('/:orderId/payment-link', (req, res, next) => {
-  if (req.headers['x-api-key']) return res.status(401).json({ error: 'Dùng Bearer token đăng nhập' })
-  next()
-}, verifyToken, async (req, res) => {
-  try {
-    const { orderId } = req.params
-    const order = await Order.findOne({ orderId })
-    if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' })
-    const isAdmin = req.userRole === 'admin'
-    const isOwner = order.userId && String(order.userId) === String(req.userId)
-    if (!isAdmin && !isOwner) return res.status(403).json({ error: 'Bạn không có quyền truy cập đơn hàng này' })
-
-    if (String(order.paymentMethod || '').toLowerCase() !== 'payos') {
-      return res.status(400).json({ error: 'Đơn hàng này không dùng PayOS' })
-    }
-    if (order.paymentStatus === 'paid') {
-      return res.status(400).json({ error: 'Đơn hàng đã thanh toán' })
-    }
-    if ((order.status || 'pending') === 'cancelled') {
-      return res.status(400).json({ error: 'Đơn hàng đã bị hủy' })
-    }
-
-    // Nếu đã lưu checkoutUrl từ lần tạo trước thì trả về luôn
-    const storedUrl = String(order.payosCheckoutUrl || '').trim()
-    if (storedUrl) return res.json({ orderId, paymentUrl: storedUrl })
-
-    const payOS = createPayOSClient()
-
-    // Nếu có paymentLinkId thì lấy lại checkoutUrl
-    const existingId = String(order.payosPaymentLinkId || '').trim()
-    if (existingId) {
-      try {
-        const resp = await payOS.get(`/v2/payment-requests/${encodeURIComponent(existingId)}`)
-        const data = resp?.data || resp
-        const checkoutUrl = data?.checkoutUrl || data?.data?.checkoutUrl || null
-        if (checkoutUrl) {
-          order.payosCheckoutUrl = checkoutUrl
-          await order.save()
-          return res.json({ orderId, paymentUrl: checkoutUrl })
-        }
-      } catch {
-        // fallback: tạo link mới
-      }
-    }
-
-    // Tạo link mới
-    const { returnUrl, cancelUrl } = getReturnCancelUrls(req, orderId)
-    const payosOrderCode = order.payosOrderCode ?? parseInt(String(orderId).replace(/^ORD/, ''), 10)
-    const paymentData = {
-      orderCode: payosOrderCode,
-      amount: Math.round(Number(order.total) || 0),
-      description: orderId,
-      items: (order.items || []).map((it) => ({
-        name: it.name,
-        quantity: it.quantity,
-        price: Math.round(it.price)
-      })),
-      cancelUrl,
-      returnUrl
-    }
-    let paymentLink = null
-    try {
-      paymentLink = await payOS.paymentRequests.create(paymentData)
-    } catch (err) {
-      const msg = String(err?.message || '')
-      const code = String(err?.code || err?.error?.code || '')
-      const desc = String(err?.desc || err?.error?.desc || '')
-      const data = err?.error?.data || null
-
-      // PayOS báo "đơn thanh toán đã tồn tại" (code 231).
-      // Thử lấy lại checkoutUrl từ error.data (nếu PayOS trả kèm), rồi lưu lại để các lần sau không phải gọi create nữa.
-      if (code === '231' || desc.includes('tồn tại') || msg.includes('code: 231') || msg.includes('(code: 231)')) {
-        const checkoutUrl = data?.checkoutUrl || data?.data?.checkoutUrl || null
-        const paymentLinkId = data?.paymentLinkId || data?.id || data?.data?.paymentLinkId || data?.data?.id || null
-        if (checkoutUrl) {
-          order.payosCheckoutUrl = checkoutUrl
-          if (paymentLinkId) order.payosPaymentLinkId = paymentLinkId
-          await order.save()
-          return res.json({ orderId, paymentUrl: checkoutUrl })
-        }
-        // Không có checkoutUrl trong error payload => trả lỗi rõ ràng (để admin hỗ trợ)
-        return res.status(409).json({ error: 'Đơn PayOS đã tồn tại nhưng hệ thống chưa lấy được link thanh toán. Vui lòng liên hệ shop để gửi lại link.' })
-      }
-
-      throw err
-    }
-    const paymentUrl = paymentLink?.checkoutUrl || null
-    order.payosOrderCode = payosOrderCode
-    order.payosPaymentLinkId = paymentLink?.paymentLinkId || paymentLink?.id || null
-    order.payosReference = paymentLink?.reference || null
-    order.payosCheckoutUrl = paymentUrl
-    await order.save()
-
-    return res.json({ orderId, paymentUrl })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -428,7 +328,6 @@ router.post('/', orderLimiter, verifyToken, validateBody(orderCreateSchema), asy
       createdOrder.payosOrderCode = payosOrderCode
       createdOrder.payosPaymentLinkId = paymentLink?.paymentLinkId || paymentLink?.id || null
       createdOrder.payosReference = paymentLink?.reference || null
-      createdOrder.payosCheckoutUrl = paymentUrl
       await createdOrder.save()
     } catch (err) {
       // Không tạo được paymentUrl thì vẫn trả về orderId để webhook cập nhật sau (tránh mất đơn)
@@ -530,7 +429,7 @@ router.patch('/:orderId/cancel', verifyToken, requireRole('admin'), async (req, 
       const qty = Math.max(0, Number(item.quantity) || 0)
       if (!qty) continue
       await Product.updateOne(
-        { id: productId, isDeleted: { $ne: true } },
+        { id: productId },
         { $inc: { stock: qty } }
       )
     }
@@ -575,7 +474,7 @@ router.patch('/:orderId/cancel-by-buyer', verifyToken, async (req, res) => {
       const qty = Math.max(0, Number(item.quantity) || 0)
       if (!qty) continue
       await Product.updateOne(
-        { id: productId, isDeleted: { $ne: true } },
+        { id: productId },
         { $inc: { stock: qty } }
       )
     }
@@ -620,7 +519,7 @@ router.patch('/:orderId/cancel-payos-and-delete', verifyToken, async (req, res) 
       const qty = Math.max(0, Number(item.quantity) || 0)
       if (!qty) continue
       await Product.updateOne(
-        { id: productId, isDeleted: { $ne: true } },
+        { id: productId },
         { $inc: { stock: qty } }
       )
     }

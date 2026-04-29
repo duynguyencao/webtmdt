@@ -62,6 +62,9 @@ const Checkout = () => {
             phone: p.phone || saved.phone || '',
             email: p.email || saved.email || '',
             address: p.address || saved.address || '',
+            cityCode: p.cityCode || saved.cityCode || '',
+            districtCode: p.districtCode || saved.districtCode || '',
+            wardCode: p.wardCode || saved.wardCode || '',
             cityName: p.cityName || saved.cityName || saved.city || '',
             districtName: p.districtName || saved.districtName || saved.district || '',
             wardName: p.wardName || saved.wardName || saved.ward || ''
@@ -175,9 +178,12 @@ const Checkout = () => {
           phone: formData.phone || '',
           email: formData.email || '',
           address: formData.address || '',
-          city: formData.city || '',
-          district: formData.district || '',
-          ward: formData.ward || ''
+          cityCode: formData.cityCode || '',
+          districtCode: formData.districtCode || '',
+          wardCode: formData.wardCode || '',
+          cityName: formData.cityName || '',
+          districtName: formData.districtName || '',
+          wardName: formData.wardName || ''
         }))
       } catch {
         // ignore

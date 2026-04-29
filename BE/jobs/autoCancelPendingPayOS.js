@@ -4,8 +4,6 @@ import Product from '../models/Product.js'
 import Coupon from '../models/Coupon.js'
 import { PayOS } from '@payos/node'
 
-const defaultSkuForProductId = (productId) => `P${productId}-DEFAULT` // legacy
-
 const createPayOSClient = () => {
   const clientId = String(process.env.PAYOS_CLIENT_ID || '').trim()
   const apiKey = String(process.env.PAYOS_API_KEY || '').trim()
@@ -74,7 +72,7 @@ export function startAutoCancelPendingPayOSJob() {
           const qty = Math.max(0, Number(item.quantity) || 0)
           if (!qty) continue
           await Product.updateOne(
-            { id: productId, isDeleted: { $ne: true } },
+            { id: productId },
             { $inc: { stock: qty } }
           )
         }

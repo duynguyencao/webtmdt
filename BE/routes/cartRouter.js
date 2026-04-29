@@ -33,8 +33,7 @@ const expandCartItems = async (items = []) => {
       originalPrice: p.originalPrice,
       sale: p.sale,
       stock,
-      quantity: Math.max(1, Number(it.quantity) || 1),
-      addOn: null
+      quantity: Math.max(1, Number(it.quantity) || 1)
     }
   }).filter(Boolean)
 

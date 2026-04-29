@@ -62,6 +62,30 @@ Tạo file `.env` (copy từ `.env.example`):
 PORT=3001
 MONGODB_URI=mongodb://127.0.0.1:27017/caulong-shop
 JWT_SECRET=your-secret-key-change-in-production
+
+# FE base url (dùng để tạo link quan trọng như PayOS return/cancel + email verify)
+FE_BASE_URL=http://localhost:5173
+
+# CORS allowlist (optional). Nếu set, chỉ origin trong list mới được gọi API từ browser.
+# Nếu không set, server sẽ auto-allow FE_BASE_URL + localhost (dev).
+# CORS_ORIGINS=https://your-fe.com,https://admin.your-fe.com
+
+# Khuyến nghị set riêng (nếu không set sẽ fallback dùng JWT_SECRET)
+# EMAIL_VERIFY_SECRET=your-email-verify-secret
+
+# SMTP (nếu bật gửi mail xác thực)
+# EMAIL_SMTP_HOST=smtp.gmail.com
+# EMAIL_SMTP_PORT=587
+# EMAIL_SMTP_USER=your_email@gmail.com
+# EMAIL_SMTP_PASS=your_app_password
+# EMAIL_FROM=your_email@gmail.com
+#
+# Chỉ dùng DEV khi TLS mail server có vấn đề (KHÔNG bật production)
+# EMAIL_SMTP_INSECURE_TLS=true
+
+# Power Automate / server-to-server: gửi header x-api-key thay cho JWT (admin)
+# Lưu ý: API key chỉ được phép gọi 1 số endpoint admin (allowlist) trong middleware/auth.js
+# API_KEY=your-api-key-secret
 ```
 
 ## Seed (lần đầu)

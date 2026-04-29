@@ -9,9 +9,7 @@ import { loginSchema, registerSchema } from '../validation/schemas.js'
 
 const router = Router()
 
-const JWT_SECRET_FALLBACK = 'your-secret-key-change-in-production'
-const JWT_SECRET = process.env.JWT_SECRET || JWT_SECRET_FALLBACK
-const EMAIL_VERIFY_SECRET = process.env.EMAIL_VERIFY_SECRET || JWT_SECRET
+const EMAIL_VERIFY_SECRET = String(process.env.EMAIL_VERIFY_SECRET || process.env.JWT_SECRET || '').trim()
 
 const createEmailTransporter = () => {
   const host = String(process.env.EMAIL_SMTP_HOST || 'smtp.gmail.com').trim()
@@ -24,12 +22,18 @@ const createEmailTransporter = () => {
     throw new Error('Chưa cấu hình mail: cần EMAIL_SMTP_USER, EMAIL_SMTP_PASS, EMAIL_FROM (hoặc EMAIL_FROM trùng EMAIL_SMTP_USER).')
   }
 
+  const insecureTls = String(process.env.EMAIL_SMTP_INSECURE_TLS || '').trim().toLowerCase() === 'true'
+  const nodeEnv = String(process.env.NODE_ENV || '').trim().toLowerCase()
+  if (insecureTls && nodeEnv === 'production') {
+    throw new Error('EMAIL_SMTP_INSECURE_TLS không được bật trong production')
+  }
+
   return nodemailer.createTransport({
     host,
     port,
     secure: port === 465,
     auth: { user, pass },
-    tls: { rejectUnauthorized: false }
+    ...(insecureTls ? { tls: { rejectUnauthorized: false } } : {})
   })
 }
 
@@ -67,6 +71,9 @@ const authLimiter = rateLimit({
 // POST /api/user/register — công khai
 router.post('/register', authLimiter, validateBody(registerSchema), async (req, res) => {
   try {
+    if (!EMAIL_VERIFY_SECRET) {
+      return res.status(500).json({ error: 'Chưa cấu hình EMAIL_VERIFY_SECRET/JWT_SECRET trên server' })
+    }
     const { name, email, password } = req.body
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Thiếu name, email hoặc password' })
@@ -148,6 +155,9 @@ router.post('/login', authLimiter, validateBody(loginSchema), async (req, res) =
 // GET /api/user/verify-email?token=... — xác thực email và trả JWT để FE tự đăng nhập
 router.get('/verify-email', async (req, res) => {
   try {
+    if (!EMAIL_VERIFY_SECRET) {
+      return res.status(500).json({ error: 'Chưa cấu hình EMAIL_VERIFY_SECRET/JWT_SECRET trên server' })
+    }
     const token = String(req.query.token || '').trim()
     if (!token) return res.status(400).json({ error: 'Thiếu token xác thực email' })
 

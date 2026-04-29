@@ -36,8 +36,6 @@ const MyOrderDetail = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [cancelling, setCancelling] = useState(false)
-  const [payosLoading, setPayosLoading] = useState(false)
-  const [payosError, setPayosError] = useState(null)
 
   const loadOrder = () => api.getOrderDetail(orderId).then(setOrder)
 
@@ -80,22 +78,6 @@ const MyOrderDetail = () => {
       alert(err.message || 'Không hủy được đơn')
     } finally {
       setCancelling(false)
-    }
-  }
-
-  const handlePayOSRetry = async () => {
-    if (payosLoading) return
-    setPayosLoading(true)
-    setPayosError(null)
-    try {
-      const resp = await api.getOrderPaymentLink(orderId)
-      const url = resp?.paymentUrl
-      if (!url) throw new Error('Không lấy được link PayOS. Vui lòng thử lại sau.')
-      window.location.href = url
-    } catch (err) {
-      setPayosError(err.message || 'Không thể mở PayOS để thanh toán lại')
-    } finally {
-      setPayosLoading(false)
     }
   }
 
@@ -216,17 +198,8 @@ const MyOrderDetail = () => {
             <h2>Thanh toán qua PayOS</h2>
             <p>Đơn hàng này sẽ được xác nhận tự động khi giao dịch PayOS thành công.</p>
             <p className="my-order-detail-bank-note">
-              Bạn có thể mở lại PayOS từ màn hình thanh toán trước đó. Hiện tại, hệ thống đang chờ webhook cập nhật trạng thái.
+              Nếu bạn đã đóng trang thanh toán, vui lòng tạo đơn mới để thanh toán lại. Hệ thống sẽ tự hủy đơn chưa thanh toán sau một khoảng thời gian.
             </p>
-            {payosError && <p className="my-order-detail-error">{payosError}</p>}
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handlePayOSRetry}
-              disabled={payosLoading}
-            >
-              {payosLoading ? 'Đang lấy link PayOS...' : 'Thanh toán lại'}
-            </button>
           </div>
         )}
 

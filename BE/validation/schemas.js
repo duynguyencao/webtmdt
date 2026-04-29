@@ -43,17 +43,6 @@ export const cartReplaceSchema = z.object({
   items: z.array(cartItemUpsertSchema).default([])
 })
 
-const variantSchema = z.object({
-  sku: z.string().trim().min(1),
-  attrs: z.object({
-    weight: z.string().optional(),
-    grip: z.string().optional()
-  }).optional(),
-  priceOverride: z.number().nullable().optional(),
-  stock: z.number().int().min(0).optional(),
-  inStock: z.boolean().optional()
-})
-
 export const productUpsertSchema = z.object({
   name: z.string().trim().min(2),
   brand: z.string().trim().min(1),
@@ -65,21 +54,7 @@ export const productUpsertSchema = z.object({
   description: z.string().optional(),
   discountPercent: z.number().optional(),
   sale: z.boolean().optional(),
-  stock: z.number().int().min(0).optional(),
-  variants: z.array(variantSchema).optional(),
-  stringingAddOn: z.object({
-    enabled: z.boolean().optional(),
-    strings: z.array(z.object({
-      id: z.string(),
-      name: z.string(),
-      price: z.number().nonnegative()
-    })).optional(),
-    tension: z.object({
-      minKg: z.number().nonnegative().optional(),
-      maxKg: z.number().nonnegative().optional(),
-      stepKg: z.number().nonnegative().optional()
-    }).optional()
-  }).optional()
+  stock: z.number().int().min(0).optional()
 })
 
 export const productSuggestionsQuerySchema = z.object({

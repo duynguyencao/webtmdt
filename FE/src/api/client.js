@@ -69,10 +69,6 @@ export const api = {
     })
   },
 
-  getOrderPaymentLink(orderId) {
-    return request(`/api/orders/${encodeURIComponent(orderId)}/payment-link`, { headers: { ...this._authHeaders() } })
-  },
-
   cancelPayOSAndDeleteOrder(orderId) {
     return request(`/api/orders/${encodeURIComponent(orderId)}/cancel-payos-and-delete`, {
       method: 'PATCH',

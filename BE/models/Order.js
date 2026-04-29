@@ -41,8 +41,6 @@ const orderSchema = new mongoose.Schema({
   payosOrderCode: { type: Number, default: null },
   payosPaymentLinkId: { type: String, default: null },
   payosReference: { type: String, default: null },
-  // Lưu checkoutUrl để "thanh toán lại" không phải tạo link mới
-  payosCheckoutUrl: { type: String, default: null },
   status: {
     type: String,
     enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],

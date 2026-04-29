@@ -38,7 +38,34 @@ connectDB()
   })
 
 app.set('trust proxy', 1)
-app.use(cors({ origin: true }))
+const normalizeOrigin = (v) => String(v || '').trim().replace(/\/$/, '')
+const nodeEnv = String(process.env.NODE_ENV || '').trim().toLowerCase()
+
+const envOrigins = String(process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((s) => normalizeOrigin(s))
+  .filter(Boolean)
+
+const feBase = normalizeOrigin(process.env.FE_BASE_URL)
+const devDefaults = nodeEnv === 'production'
+  ? []
+  : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173', 'http://127.0.0.1:5173']
+
+const allowedOrigins = Array.from(new Set([
+  ...envOrigins,
+  ...(feBase ? [feBase] : []),
+  ...devDefaults
+]))
+
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow non-browser requests (curl, server-to-server) that don't send Origin
+    if (!origin) return cb(null, true)
+    const o = normalizeOrigin(origin)
+    if (allowedOrigins.includes(o)) return cb(null, true)
+    return cb(new Error('Not allowed by CORS'), false)
+  }
+}))
 app.use(helmet({
   crossOriginResourcePolicy: false
 }))
