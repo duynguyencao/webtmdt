@@ -54,7 +54,7 @@ const Contact = () => {
               </div>
               <div className="contact-info-item">
                 <h3>Địa chỉ văn phòng</h3>
-                <p>PTIT_HN</p>
+                <p>  Ngõ 33, Đường Đại Mỗ, P. Đại Mỗ, Hà Nội</p>
                 <p>Cơ sở chính ShopTD tại Học viện Công nghệ Bưu chính Viễn thông - Hà Nội.</p>
               </div>
             </div>

@@ -287,11 +287,13 @@
 
   .products-actions {
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .filter-toggle,
   .sort-select {
     flex: 1;
+    min-width: 120px;
   }
 
   .products-grid {

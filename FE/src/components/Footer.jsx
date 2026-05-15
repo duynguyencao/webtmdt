@@ -11,17 +11,17 @@ const Footer = () => {
           <div className="footer-section">
             <h3 className="footer-title">Về ShopTD</h3>
             <p>
-              Hệ thống cửa hàng cầu lông uy tín. 
+              Hệ thống cửa hàng cầu lông uy tín.
               ShopTD cam kết mang đến những sản phẩm chất lượng tốt nhất.
             </p>
             <div className="social-links">
-              <a href="#" aria-label="Facebook">
+              <a href="https://www.facebook.com/duy.nguyencao.338" aria-label="Facebook">
                 <FiFacebook />
               </a>
-              <a href="#" aria-label="Instagram">
+              <a href="https://www.instagram.com/trunglmeo/" aria-label="Instagram">
                 <FiInstagram />
               </a>
-              <a href="#" aria-label="Youtube">
+              <a href="https://www.youtube.com/" aria-label="Youtube">
                 <FiYoutube />
               </a>
             </div>
@@ -55,14 +55,14 @@ const Footer = () => {
             <ul className="footer-contact">
               <li>
                 <FiPhone />
-                <span>0977508430 | 0338000308</span>
+                <span>0902155394 | 0865535162</span>
               </li>
               <li>
                 <FiMail />
                 <span>contact@shoptd.vn</span>
               </li>
               <li>
-                <span>Địa chỉ: PTIT_HN</span>
+                <span>Địa chỉ:  Ngõ 33, Đường Đại Mỗ, P. Đại Mỗ, Hà Nội</span>
               </li>
             </ul>
           </div>
@@ -70,7 +70,7 @@ const Footer = () => {
 
         <div className="footer-bottom">
           <p>&copy; 2026 ShopTD. Tất cả quyền được bảo lưu.</p>
-          <p>Địa chỉ: PTIT_HN</p>
+          <p>Địa chỉ:  Ngõ 33, Đường Đại Mỗ, P. Đại Mỗ, Hà Nội</p>
         </div>
       </div>
     </footer>

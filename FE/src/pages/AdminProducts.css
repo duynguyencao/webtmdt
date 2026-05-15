@@ -119,6 +119,7 @@
   0% {
     background-position: 100% 0;
   }
+
   100% {
     background-position: 0 0;
   }
@@ -222,6 +223,7 @@
   align-items: center;
   gap: 0.5rem;
   font-weight: normal;
+  white-space: nowrap;
 }
 
 .admin-modal-content .form-actions {

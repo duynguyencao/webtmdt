@@ -347,4 +347,21 @@
   .cart-item-name {
     font-size: 1rem;
   }
+  
+  .cart-item-actions {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .quantity-controls {
+    gap: 0.5rem;
+  }
+  
+  .promo-input {
+    flex-direction: column;
+  }
+  
+  .promo-input .btn {
+    width: 100%;
+  }
 }

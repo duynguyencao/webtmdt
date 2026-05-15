@@ -37,10 +37,10 @@ const AdminLayout = ({ title, subtitle, children }) => {
               </Link>
             )
           })}
+          <button type="button" className="admin-logout-btn" onClick={handleLogout}>
+            <FiLogOut /> Đăng xuất
+          </button>
         </nav>
-        <button type="button" className="admin-logout-btn" onClick={handleLogout}>
-          <FiLogOut /> Đăng xuất
-        </button>
       </aside>
 
       <section className="admin-main">

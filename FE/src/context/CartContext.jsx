@@ -59,7 +59,7 @@ export const CartProvider = ({ children }) => {
         setCartItems((prev) => (isSameCart(prev, items) ? prev : items))
         lastSyncedRef.current = JSON.stringify(toSyncPayload(items))
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   // Sync cart lên DB (debounce) khi đã đăng nhập
@@ -83,7 +83,7 @@ export const CartProvider = ({ children }) => {
             lastSyncedRef.current = json
           }
         })
-        .catch(() => {})
+        .catch(() => { })
     }, 400)
 
     return () => {
@@ -109,7 +109,7 @@ export const CartProvider = ({ children }) => {
       }
       return [...prevItems, { ...product, quantity }]
     })
-    setToastMessage(`Da them ${quantity} x ${product.name} vao gio hang`)
+    setToastMessage(`Đã thêm ${quantity} x ${product.name} vào giỏ hàng`)
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
     toastTimeoutRef.current = setTimeout(() => setToastMessage(''), 2000)
   }

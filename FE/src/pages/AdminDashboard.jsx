@@ -206,7 +206,7 @@ const AdminDashboard = () => {
 
     const accumulate = (ordersList, map) => {
       ordersList.forEach((order) => {
-        ;(order.items || []).forEach((item) => {
+        ; (order.items || []).forEach((item) => {
           const key = String(item.id ?? item.name)
           const prev = map.get(key) || { name: item.name, units: 0 }
           prev.units += Number(item.quantity) || 0
@@ -654,9 +654,10 @@ const AdminDashboard = () => {
 
               <div className="admin-form-group">
                 <label className="admin-field-label">Trạng thái</label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}>
                   <input
                     type="checkbox"
+                    className="toggle-switch"
                     checked={couponForm.active}
                     onChange={(e) => setCouponForm((p) => ({ ...p, active: e.target.checked }))}
                   />

@@ -6,4 +6,5 @@
  */
 export const usersSeed = [
   { name: 'Admin', email: 'admin@caulong.vn', password: 'admin123', role: 'admin', emailVerified: true },
+  { name: 'Buyer', email: 'buyer@caulong.vn', password: 'admin123', role: 'buyer', emailVerified: true }
 ]
