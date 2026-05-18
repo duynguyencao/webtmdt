@@ -153,7 +153,8 @@ const ProductDetail = () => {
     const stock = Number(product?.stock) || 0
     if (stock <= 0) return
     const price = Number(product?.price) || 0
-    addToCart({ ...product, price, stock }, quantity)
+    const added = addToCart({ ...product, price, stock }, quantity)
+    if (!added) return
     setAddedToCart(true)
     setTimeout(() => setAddedToCart(false), 2000)
   }

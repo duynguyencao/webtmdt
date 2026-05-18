@@ -107,14 +107,14 @@ export const CartProvider = ({ children }) => {
       setToastMessage('Sản phẩm đã hết hàng')
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
       toastTimeoutRef.current = setTimeout(() => setToastMessage(''), 2000)
-      return
+      return false
     }
 
     if (Number.isFinite(stock) && stock >= 0 && currentQty + requestedQty > stock) {
       setToastMessage(`Không thể thêm quá tồn kho hiện có (${stock})`)
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
       toastTimeoutRef.current = setTimeout(() => setToastMessage(''), 2000)
-      return
+      return false
     }
 
     setCartItems(prevItems => {
@@ -131,6 +131,7 @@ export const CartProvider = ({ children }) => {
     setToastMessage(`Đã thêm ${requestedQty} x ${product.name} vào giỏ hàng`)
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
     toastTimeoutRef.current = setTimeout(() => setToastMessage(''), 2000)
+    return true
   }
 
   const removeFromCart = (productId) => {
