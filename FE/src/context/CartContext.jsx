@@ -98,18 +98,37 @@ export const CartProvider = ({ children }) => {
   }, [])
 
   const addToCart = (product, quantity = 1) => {
+    const requestedQty = Math.max(1, Number(quantity) || 1)
+    const stock = Number(product?.stock)
+    const existingItem = cartItems.find(item => item.id === product.id)
+    const currentQty = Number(existingItem?.quantity) || 0
+
+    if (Number.isFinite(stock) && stock <= 0) {
+      setToastMessage('Sản phẩm đã hết hàng')
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
+      toastTimeoutRef.current = setTimeout(() => setToastMessage(''), 2000)
+      return
+    }
+
+    if (Number.isFinite(stock) && stock >= 0 && currentQty + requestedQty > stock) {
+      setToastMessage(`Không thể thêm quá tồn kho hiện có (${stock})`)
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
+      toastTimeoutRef.current = setTimeout(() => setToastMessage(''), 2000)
+      return
+    }
+
     setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === product.id)
-      if (existingItem) {
+      const prevExistingItem = prevItems.find(item => item.id === product.id)
+      if (prevExistingItem) {
         return prevItems.map(item =>
           (item.id === product.id)
-            ? { ...item, quantity: item.quantity + quantity }
+            ? { ...item, quantity: item.quantity + requestedQty }
             : item
         )
       }
-      return [...prevItems, { ...product, quantity }]
+      return [...prevItems, { ...product, quantity: requestedQty }]
     })
-    setToastMessage(`Đã thêm ${quantity} x ${product.name} vào giỏ hàng`)
+    setToastMessage(`Đã thêm ${requestedQty} x ${product.name} vào giỏ hàng`)
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
     toastTimeoutRef.current = setTimeout(() => setToastMessage(''), 2000)
   }

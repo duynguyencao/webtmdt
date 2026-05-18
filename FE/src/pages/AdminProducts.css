@@ -1,5 +1,6 @@
 .admin-products-page {
   min-height: 60vh;
+  min-width: 0;
 }
 
 .admin-loading {
@@ -52,6 +53,7 @@
 .admin-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 860px;
 }
 
 .admin-table th,
@@ -84,6 +86,13 @@
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
+}
+
+.admin-description-cell {
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-empty {
@@ -242,6 +251,35 @@
 }
 
 @media (max-width: 640px) {
+  .admin-products-page .admin-header {
+    align-items: stretch;
+  }
+
+  .admin-products-page .admin-header > div {
+    width: 100%;
+  }
+
+  .admin-products-page .admin-filter-input,
+  .admin-products-page .admin-header .btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-products-page .admin-table-wrap {
+    max-width: 100%;
+  }
+
+  .admin-products-page .admin-table th,
+  .admin-products-page .admin-table td {
+    padding: 0.7rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .admin-products-page .admin-pagination {
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
   .admin-modal-content .form-row {
     grid-template-columns: 1fr;
   }
@@ -278,6 +316,12 @@
   border-radius: 10px;
 }
 
+.admin-preview-image-button {
+  width: 100%;
+  padding: 0;
+  background: transparent;
+}
+
 .admin-preview-meta {
   overflow-x: auto;
 }
@@ -310,6 +354,59 @@
 .admin-preview-description {
   white-space: pre-wrap;
   color: var(--text-dark);
+}
+
+.admin-description-toggle {
+  display: block;
+  margin-top: 0.35rem;
+  padding: 0;
+  color: #2563eb;
+  background: transparent;
+  font-weight: 700;
+}
+
+.admin-image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.82);
+}
+
+.admin-image-lightbox img {
+  max-width: min(92vw, 900px);
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 12px;
+  cursor: zoom-out;
+}
+
+.admin-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.94);
+  color: #0f172a;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.admin-lightbox-nav:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.admin-lightbox-prev {
+  left: 18px;
+}
+
+.admin-lightbox-next {
+  right: 18px;
 }
 
 .admin-preview-actions {

@@ -66,6 +66,8 @@
   overflow: hidden;
   background: var(--bg-light);
   border: 2px solid var(--border-color);
+  padding: 0;
+  cursor: zoom-in;
 }
 
 .main-image img {
@@ -150,7 +152,7 @@
   object-fit: cover;
 }
 
-.product-info {
+.product-detail-page .product-info {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -162,7 +164,7 @@
   border-bottom: 2px solid var(--border-color);
 }
 
-.product-brand {
+.product-detail-page .product-brand {
   display: inline-block;
   padding: 0.5rem 1rem;
   background: var(--accent-color);
@@ -181,25 +183,25 @@
   line-height: 1.3;
 }
 
-.product-rating {
+.product-detail-page .product-rating {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
-.stars {
+.product-detail-page .stars {
   display: flex;
   gap: 0.25rem;
   color: #ddd;
   font-size: 1.25rem;
 }
 
-.stars .filled {
+.product-detail-page .stars .filled {
   color: #ffc107;
   fill: #ffc107;
 }
 
-.rating-text {
+.product-detail-page .rating-text {
   color: var(--text-light);
   font-size: 0.9375rem;
 }
@@ -211,13 +213,13 @@
   flex-wrap: wrap;
 }
 
-.original-price {
+.product-detail-page .original-price {
   font-size: 1.25rem;
   color: var(--text-light);
   text-decoration: line-through;
 }
 
-.current-price {
+.product-detail-page .current-price {
   font-size: 2.5rem;
   font-weight: 800;
   color: var(--primary-color);
@@ -271,6 +273,57 @@
   color: var(--text-light);
   line-height: 1.8;
   margin-bottom: 0.75rem;
+}
+
+.product-description-toggle {
+  color: var(--primary-color);
+  background: transparent;
+  font-weight: 700;
+  padding: 0;
+}
+
+.product-image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 3200;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.82);
+}
+
+.product-image-lightbox img {
+  max-width: min(92vw, 1000px);
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 12px;
+  cursor: zoom-out;
+}
+
+.product-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.94);
+  color: #0f172a;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.product-lightbox-nav:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.product-lightbox-prev {
+  left: 18px;
+}
+
+.product-lightbox-next {
+  right: 18px;
 }
 
 .product-specifications table {

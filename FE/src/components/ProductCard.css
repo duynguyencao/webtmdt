@@ -8,6 +8,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  container-type: inline-size;
 }
 
 .product-card:hover {
@@ -104,16 +105,27 @@
 }
 
 .original-price {
-  font-size: 0.875rem;
+  font-size: clamp(0.86rem, 4.2cqi, 1.8rem);
   color: var(--text-light);
   text-decoration: line-through;
 }
 
+.original-price.is-placeholder {
+  visibility: hidden;
+}
+
 .current-price {
-  font-size: 1.3rem;
+  font-size: clamp(0.86rem, 5.2cqi, 1.8rem);
   font-weight: 700;
   color: var(--primary-color);
   line-height: 1.2;
+  white-space: nowrap;
+}
+
+@media (min-width: 641px) {
+  .current-price {
+    font-size: clamp(1.8rem, 5.5cqi, 2rem);
+  }
 }
 
 .product-rating {

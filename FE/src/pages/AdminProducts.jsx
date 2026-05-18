@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import AdminLayout from '../components/AdminLayout'
+import NoticeToast from '../components/NoticeToast'
 import './AdminProducts.css'
 
 const CATEGORIES = [
@@ -32,11 +33,19 @@ const AdminProducts = () => {
   const [submitError, setSubmitError] = useState(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewProduct, setPreviewProduct] = useState(null)
+  const [previewDescriptionExpanded, setPreviewDescriptionExpanded] = useState(false)
+  const [zoomImageIndex, setZoomImageIndex] = useState(null)
   const [searchText, setSearchText] = useState('')
   const [stockFilter, setStockFilter] = useState('all')
   const [sortKey, setSortKey] = useState('id_desc')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(() => (window.innerWidth <= 640 ? 6 : 10))
+  const [notice, setNotice] = useState(null)
+
+  const showNotice = (message, type = 'success') => {
+    setNotice({ message, type })
+    window.setTimeout(() => setNotice(null), 2200)
+  }
 
   useEffect(() => {
     const onResize = () => {
@@ -65,6 +74,20 @@ const AdminProducts = () => {
       })
       .finally(() => setLoading(false))
   }, [navigate])
+
+  useEffect(() => {
+    if (zoomImageIndex == null) return
+    const previewImages = Array.isArray(previewProduct?.images) && previewProduct.images.length > 0
+      ? previewProduct.images
+      : [previewProduct?.image].filter(Boolean)
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setZoomImageIndex(null)
+      if (e.key === 'ArrowLeft') setZoomImageIndex((prev) => Math.max(0, prev - 1))
+      if (e.key === 'ArrowRight') setZoomImageIndex((prev) => Math.min(previewImages.length - 1, prev + 1))
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [zoomImageIndex, previewProduct])
 
   const loadProducts = () => {
     api.getProducts().then(setProducts).catch(() => {})
@@ -104,6 +127,7 @@ const AdminProducts = () => {
     try {
       const full = await api.getProductDetail(product.id)
       setPreviewProduct(full)
+      setPreviewDescriptionExpanded(false)
       setPreviewOpen(true)
     } catch (err) {
       alert('Không thể tải thông tin sản phẩm: ' + err.message)
@@ -119,6 +143,7 @@ const AdminProducts = () => {
   const closePreview = () => {
     setPreviewOpen(false)
     setPreviewProduct(null)
+    setPreviewDescriptionExpanded(false)
   }
 
   const handleChange = (e) => {
@@ -161,13 +186,16 @@ const AdminProducts = () => {
         await api.updateProduct(editingId, body)
         loadProducts()
         closeForm()
+        showNotice('Đã cập nhật sản phẩm')
       } else {
         await api.createProduct(body)
         loadProducts()
         closeForm()
+        showNotice('Đã thêm sản phẩm')
       }
     } catch (err) {
       setSubmitError(err.message || 'Có lỗi xảy ra')
+      showNotice(err.message || 'Không lưu được sản phẩm', 'error')
     } finally {
       setSubmitLoading(false)
     }
@@ -178,8 +206,9 @@ const AdminProducts = () => {
     try {
       await api.deleteProduct(id)
       loadProducts()
+      showNotice('Đã xóa sản phẩm')
     } catch (err) {
-      alert(err.message || 'Không thể xóa')
+      showNotice(err.message || 'Không thể xóa sản phẩm', 'error')
     }
   }
 
@@ -239,9 +268,17 @@ const AdminProducts = () => {
   const previewSalePrice = previewOriginalPrice > 0
     ? Math.round(previewOriginalPrice * (1 - previewDiscountPercent / 100))
     : 0
+  const previewDescription = String(previewProduct?.description || '')
+  const shortPreviewDescription = previewDescription.length > 120
+    ? `${previewDescription.slice(0, 120).trim()}...`
+    : previewDescription
+  const previewImages = Array.isArray(previewProduct?.images) && previewProduct.images.length > 0
+    ? previewProduct.images
+    : [previewProduct?.image].filter(Boolean)
 
   return (
     <AdminLayout title="Quản lý sản phẩm" subtitle="Tạo, chỉnh sửa và kiểm soát tồn kho vợt cầu lông">
+      <NoticeToast message={notice?.message} type={notice?.type} />
       <div className="admin-products-page">
         <div className="admin-header">
           <h2>Danh sách sản phẩm</h2>
@@ -302,7 +339,7 @@ const AdminProducts = () => {
                   <td>{p.brand}</td>
                   <td>{CATEGORIES.find((c) => c.value === p.category)?.label || p.category}</td>
                   <td>{formatPrice(p.price)}</td>
-                  <td>{(p.description || '').slice(0, 80) || '—'}</td>
+                  <td className="admin-description-cell">{p.description || '—'}</td>
                   <td style={{ textAlign: 'center', color: (p.stock ?? 0) === 0 ? '#e53935' : 'inherit', fontWeight: (p.stock ?? 0) === 0 ? 600 : 400 }}>
                     {(p.stock ?? 0) === 0 ? 'Hết hàng' : p.stock}
                   </td>
@@ -420,10 +457,16 @@ const AdminProducts = () => {
 
               <div className="admin-preview-grid">
                 <div className="admin-preview-image">
-                  <img
-                    src={previewProduct.image || (previewProduct.images && previewProduct.images[0]) || ''}
-                    alt={previewProduct.name}
-                  />
+                  <button
+                    type="button"
+                    className="admin-preview-image-button"
+                    onClick={() => setZoomImageIndex(0)}
+                  >
+                    <img
+                      src={previewProduct.image || (previewProduct.images && previewProduct.images[0]) || ''}
+                      alt={previewProduct.name}
+                    />
+                  </button>
                 </div>
 
                 <div className="admin-preview-meta">
@@ -468,7 +511,18 @@ const AdminProducts = () => {
                       </tr>
                       <tr>
                         <th>Mô tả</th>
-                        <td className="admin-preview-description">{previewProduct.description || '—'}</td>
+                        <td className="admin-preview-description">
+                          {previewDescriptionExpanded ? (previewDescription || '—') : (shortPreviewDescription || '—')}
+                          {previewDescription.length > 120 && (
+                            <button
+                              type="button"
+                              className="admin-description-toggle"
+                              onClick={() => setPreviewDescriptionExpanded((prev) => !prev)}
+                            >
+                              {previewDescriptionExpanded ? 'Thu gọn' : 'Xem thêm'}
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     </tbody>
                   </table>
@@ -491,6 +545,36 @@ const AdminProducts = () => {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {zoomImageIndex != null && (
+          <div className="admin-image-lightbox" onClick={() => setZoomImageIndex(null)}>
+            <button
+              type="button"
+              className="admin-lightbox-nav admin-lightbox-prev"
+              onClick={(e) => {
+                e.stopPropagation()
+                setZoomImageIndex((prev) => Math.max(0, prev - 1))
+              }}
+              disabled={zoomImageIndex === 0}
+              aria-label="Ảnh trước"
+            >
+              ‹
+            </button>
+            <img src={previewImages[zoomImageIndex]} alt="" onClick={(e) => e.stopPropagation()} />
+            <button
+              type="button"
+              className="admin-lightbox-nav admin-lightbox-next"
+              onClick={(e) => {
+                e.stopPropagation()
+                setZoomImageIndex((prev) => Math.min(previewImages.length - 1, prev + 1))
+              }}
+              disabled={zoomImageIndex === previewImages.length - 1}
+              aria-label="Ảnh sau"
+            >
+              ›
+            </button>
           </div>
         )}
       </div>

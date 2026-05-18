@@ -173,7 +173,32 @@
   }
 
   .chatbot-toggle {
-    right: 16px;
-    bottom: 16px;
+    right: auto;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 64px;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text-dark);
+    box-shadow: none;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 1.25rem;
+  }
+
+  .chatbot-toggle::after {
+    content: 'Chat';
+    font-size: 0.65rem;
+    font-weight: 500;
+  }
+
+  .chatbot-toggle:hover,
+  .chatbot-toggle.active {
+    color: #0068fb;
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+    transform: translateX(-50%);
   }
 }

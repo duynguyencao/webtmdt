@@ -20,6 +20,12 @@ const ChatBot = () => {
     scrollToBottom()
   }, [messages])
 
+  useEffect(() => {
+    const onOpenChat = () => setOpen(true)
+    window.addEventListener('openChat', onOpenChat)
+    return () => window.removeEventListener('openChat', onOpenChat)
+  }, [])
+
   const handleSend = async (e) => {
     e.preventDefault()
     const text = input.trim()
@@ -51,7 +57,7 @@ const ChatBot = () => {
     <>
       <button
         type="button"
-        className="chatbot-toggle"
+        className={`chatbot-toggle ${open ? 'active' : ''}`}
         onClick={() => setOpen(!open)}
         aria-label={open ? 'Đóng chat' : 'Mở chat'}
       >

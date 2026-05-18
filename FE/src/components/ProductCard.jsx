@@ -44,9 +44,9 @@ const ProductCard = ({ product }) => {
           <h3 className="product-name">{product.name}</h3>
           <p className="product-brand">{product.brand}</p>
           <div className="product-price">
-            {product.originalPrice && (
-              <span className="original-price">{formatPrice(product.originalPrice)}</span>
-            )}
+            <span className={`original-price ${product.originalPrice ? '' : 'is-placeholder'}`}>
+              {product.originalPrice ? formatPrice(product.originalPrice) : formatPrice(product.price)}
+            </span>
             <span className="current-price">{formatPrice(product.price)}</span>
           </div>
           <div className="product-rating">

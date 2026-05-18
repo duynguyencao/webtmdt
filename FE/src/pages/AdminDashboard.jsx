@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import AdminLayout from '../components/AdminLayout'
+import NoticeToast from '../components/NoticeToast'
 import './AdminDashboard.css'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
@@ -72,6 +73,12 @@ const AdminDashboard = () => {
   const [rangeEnd, setRangeEnd] = useState(() => endOfDay(startOfDay(new Date())))
   const [isRangeModalOpen, setIsRangeModalOpen] = useState(false)
   const [couponBusy, setCouponBusy] = useState(false)
+  const [notice, setNotice] = useState(null)
+
+  const showNotice = (message, type = 'success') => {
+    setNotice({ message, type })
+    window.setTimeout(() => setNotice(null), 2200)
+  }
 
   useEffect(() => {
     api.getMe()
@@ -242,6 +249,7 @@ const AdminDashboard = () => {
     try {
       if (couponMode === 'create') {
         await api.createCoupon(couponForm)
+        showNotice('Đã tạo mã giảm giá')
       } else {
         await api.updateCoupon(editingCouponCode, {
           type: couponForm.type,
@@ -251,6 +259,7 @@ const AdminDashboard = () => {
           usageLimit: couponForm.usageLimit,
           active: couponForm.active
         })
+        showNotice('Đã cập nhật mã giảm giá')
       }
       const next = await api.getCoupons()
       setCoupons(next)
@@ -259,6 +268,7 @@ const AdminDashboard = () => {
       setCouponForm({ code: '', type: 'percent', value: 10, minOrderTotal: 0, maxDiscount: 0, usageLimit: 0, active: true })
     } catch (err) {
       setCouponError(err.message || (couponMode === 'edit' ? 'Không cập nhật được mã giảm giá' : 'Không tạo được mã giảm giá'))
+      showNotice(err.message || 'Không lưu được mã giảm giá', 'error')
     } finally {
       setCouponBusy(false)
     }
@@ -295,8 +305,10 @@ const AdminDashboard = () => {
       const next = await api.getCoupons()
       setCoupons(next)
       if (couponMode === 'edit' && editingCouponCode === coupon.code) handleCancelEditCoupon()
+      showNotice('Đã xóa mã giảm giá')
     } catch (err) {
       setCouponError(err.message || 'Không xóa được mã giảm giá')
+      showNotice(err.message || 'Không xóa được mã giảm giá', 'error')
     } finally {
       setCouponBusy(false)
     }
@@ -304,7 +316,12 @@ const AdminDashboard = () => {
 
   const saveSiteConfig = async (e) => {
     e.preventDefault()
-    await api.updateSiteConfig(siteConfig)
+    try {
+      await api.updateSiteConfig(siteConfig)
+      showNotice('Đã lưu giao diện trang chủ')
+    } catch (err) {
+      showNotice(err.message || 'Không lưu được giao diện', 'error')
+    }
   }
 
   if (loading) return <div className="admin-loading">Đang tải thống kê...</div>
@@ -312,6 +329,7 @@ const AdminDashboard = () => {
 
   return (
     <AdminLayout title="Admin Dashboard" subtitle="Tổng quan hoạt động cửa hàng theo thời gian thực">
+      <NoticeToast message={notice?.message} type={notice?.type} />
       <div className="admin-dashboard-page">
         <div className="admin-toolbar-card">
           <div className="admin-range-display">
@@ -547,16 +565,16 @@ const AdminDashboard = () => {
               </div>
 
               <div className="admin-form-group">
-                <label className="admin-field-label">Số cột lưới sản phẩm</label>
-                <input
-                  type="number"
-                  min="2"
-                  max="6"
-                  step="1"
+                <label className="admin-field-label">Số cột lưới sản phẩm trên web</label>
+                <select
                   value={siteConfig.productGridCols || 4}
-                  onChange={(e) => setSiteConfig((p) => ({ ...p, productGridCols: Number(e.target.value) || 4 }))}
-                />
-                <div className="admin-field-help">Chọn từ 2 đến 6 cột để tối ưu hiển thị theo màn hình.</div>
+                  onChange={(e) => setSiteConfig((p) => ({ ...p, productGridCols: Number(e.target.value) }))}
+                >
+                  {[2, 3, 4, 5].map((cols) => (
+                    <option key={cols} value={cols}>{cols} cột</option>
+                  ))}
+                </select>
+                <div className="admin-field-help">Áp dụng cho trang chủ và trang sản phẩm trên desktop. Mobile luôn hiển thị 2 cột.</div>
               </div>
 
               <button type="submit" className="btn btn-primary admin-primary-btn">Lưu giao diện trang chủ</button>

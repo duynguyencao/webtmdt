@@ -6,8 +6,8 @@
 }
 
 .admin-sidebar {
-  background: #1d3557;
-  color: #fff;
+  background: #ffffff;
+  color: #ffffff;
   padding: 1.25rem 1rem;
   display: flex;
   flex-direction: column;
@@ -17,24 +17,8 @@
   height: 100vh;
 }
 
-/* Mobile */
-
-@media (max-width: 768px) {
-
-  .admin-sidebar {
-
-    position: static;
-
-    top: auto;
-
-    height: auto;
-
-  }
-
-}
-
 .admin-brand {
-  color: #fff;
+  color: #000000;
   text-decoration: none;
   display: flex;
   flex-direction: column;
@@ -56,7 +40,7 @@
 }
 
 .admin-nav-item {
-  color: #ffffff;
+  color: #000000;
   text-decoration: none;
   display: flex;
   align-items: center;
@@ -69,7 +53,7 @@
 .admin-nav-item:hover,
 .admin-nav-item.active {
   background: rgba(255, 255, 255, 0.1);
-  color: #fbfbfb;
+  color: #0068fb;
 }
 
 .admin-logout-btn {
@@ -112,6 +96,7 @@
 .admin-content {
   display: grid;
   gap: 1rem;
+  min-width: 0;
 }
 
 @media (max-width: 768px) {
@@ -120,8 +105,14 @@
     padding-bottom: 90px;
   }
 
+  .admin-main {
+    min-width: 0;
+    padding: 1rem 1rem 2rem;
+  }
+
   .admin-sidebar {
     position: fixed;
+    top: auto;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);

@@ -4,12 +4,17 @@ import { verifyToken, requireRole } from '../middleware/auth.js'
 
 const router = Router()
 
+const sanitizeGridCols = (value) => {
+  const cols = Number(value)
+  return Number.isInteger(cols) && cols >= 2 && cols <= 8 ? cols : 4
+}
+
 const sanitize = (body = {}) => ({
   heroTitle: String(body.heroTitle || '').trim(),
   heroSubtitle: String(body.heroSubtitle || '').trim(),
   heroImage: String(body.heroImage || '').trim(),
   saleTitle: String(body.saleTitle || '').trim(),
-  productGridCols: Math.min(6, Math.max(2, Number(body.productGridCols) || 4))
+  productGridCols: sanitizeGridCols(body.productGridCols)
 })
 
 router.get('/', async (req, res) => {

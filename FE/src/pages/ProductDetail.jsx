@@ -37,6 +37,8 @@ const ProductDetail = () => {
   const [selectedImage, setSelectedImage] = useState(0)
   const [addedToCart, setAddedToCart] = useState(false)
   const [activeTab, setActiveTab] = useState('description') // 'description' | 'specs'
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false)
+  const [imageZoomOpen, setImageZoomOpen] = useState(false)
   const [relatedProducts, setRelatedProducts] = useState([])
   const [reviews, setReviews] = useState([])
   const [reviewSort, setReviewSort] = useState('newest') // newest | highest | lowest
@@ -49,6 +51,7 @@ const ProductDetail = () => {
   const [editingReviewId, setEditingReviewId] = useState(null)
 
   useEffect(() => {
+    setDescriptionExpanded(false)
     const fetchProduct = async () => {
       try {
         setLoading(true)
@@ -120,6 +123,17 @@ const ProductDetail = () => {
     }, 100)
     return () => clearTimeout(t)
   }, [product, location.hash])
+
+  useEffect(() => {
+    if (!imageZoomOpen) return
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setImageZoomOpen(false)
+      if (e.key === 'ArrowLeft') setSelectedImage((prev) => Math.max(0, prev - 1))
+      if (e.key === 'ArrowRight') setSelectedImage((prev) => Math.min(product.images.length - 1, prev + 1))
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [imageZoomOpen, product?.images?.length])
 
   useEffect(() => {
     if (!api.getToken()) {
@@ -246,6 +260,13 @@ const ProductDetail = () => {
   if (error) return <div className="loading">Không tìm thấy sản phẩm hoặc lỗi kết nối.</div>
   if (!product) return null
 
+  const descriptionParagraphs = String(product.description || '')
+    .split('\n')
+    .filter((line) => line.trim().length > 0)
+  const visibleDescriptionParagraphs = descriptionExpanded
+    ? descriptionParagraphs
+    : descriptionParagraphs.slice(0, 3)
+
   const reviewStats = (() => {
     const list = Array.isArray(reviews) ? reviews : []
     const count = list.length
@@ -274,9 +295,9 @@ const ProductDetail = () => {
 
         <div className="product-detail">
           <div className="product-images">
-            <div className="main-image">
+            <button type="button" className="main-image" onClick={() => setImageZoomOpen(true)}>
               <img src={product.images[selectedImage]} alt={product.name} />
-            </div>
+            </button>
             <div className="thumbnail-nav">
               <button
                 type="button"
@@ -440,12 +461,18 @@ const ProductDetail = () => {
           <div className="product-tab-content">
             {activeTab === 'description' && (
               <div className="product-description">
-                {String(product.description || '')
-                  .split('\n')
-                  .filter((line) => line.trim().length > 0)
-                  .map((line, idx) => (
+                {visibleDescriptionParagraphs.map((line, idx) => (
                     <p key={idx}>{line}</p>
                   ))}
+                {descriptionParagraphs.length > 3 && (
+                  <button
+                    type="button"
+                    className="product-description-toggle"
+                    onClick={() => setDescriptionExpanded((prev) => !prev)}
+                  >
+                    {descriptionExpanded ? 'Thu gọn' : 'Xem thêm'}
+                  </button>
+                )}
               </div>
             )}
 
@@ -475,6 +502,36 @@ const ProductDetail = () => {
               ))}
             </div>
           </section>
+        )}
+
+        {imageZoomOpen && (
+          <div className="product-image-lightbox" onClick={() => setImageZoomOpen(false)}>
+            <button
+              type="button"
+              className="product-lightbox-nav product-lightbox-prev"
+              onClick={(e) => {
+                e.stopPropagation()
+                setSelectedImage((prev) => Math.max(0, prev - 1))
+              }}
+              disabled={selectedImage === 0}
+              aria-label="Ảnh trước"
+            >
+              ‹
+            </button>
+            <img src={product.images[selectedImage]} alt={product.name} onClick={(e) => e.stopPropagation()} />
+            <button
+              type="button"
+              className="product-lightbox-nav product-lightbox-next"
+              onClick={(e) => {
+                e.stopPropagation()
+                setSelectedImage((prev) => Math.min(product.images.length - 1, prev + 1))
+              }}
+              disabled={selectedImage === product.images.length - 1}
+              aria-label="Ảnh sau"
+            >
+              ›
+            </button>
+          </div>
         )}
 
         <section className="related-products" id="reviews" ref={reviewsRef}>

@@ -12,6 +12,7 @@ const Home = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [siteConfig, setSiteConfig] = useState({})
+  const desktopGridCols = Math.min(8, Math.max(2, Number(siteConfig.productGridCols) || 4))
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,6 +62,13 @@ const Home = () => {
 
   return (
     <div className="home">
+      <style>{`
+        @media (min-width: 641px) {
+          .home .products-grid {
+            grid-template-columns: repeat(${desktopGridCols}, minmax(0, 1fr));
+          }
+        }
+      `}</style>
       {/* Hero Section */}
       <section className="hero">
         <div className="hero-content">
@@ -120,7 +128,6 @@ const Home = () => {
             <p className="error-text">Không tải được sản phẩm.</p>
           ) : (
             <div className="products-grid">
-              <style>{`.home .products-grid{grid-template-columns: repeat(${Math.min(6, Math.max(2, Number(siteConfig.productGridCols) || 4))}, minmax(0, 1fr));}`}</style>
               {bestSellers.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

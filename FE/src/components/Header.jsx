@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { FiSearch, FiShoppingCart, FiUser, FiMenu, FiX, FiLogOut, FiHome, FiMessageCircle } from 'react-icons/fi'
+import { FiSearch, FiShoppingCart, FiUser, FiMenu, FiX, FiLogOut, FiHome } from 'react-icons/fi'
 import { useCart } from '../context/CartContext'
 import { api } from '../api/client'
 import './Header.css'
@@ -149,12 +149,12 @@ const Header = ({ user: userProp }) => {
             </form>
 
             <div className="header-icons">
-              <Link to="/" className="mobile-only-icon" title="Trang chủ">
+              <Link to="/" className={`mobile-only-icon ${location.pathname === '/' ? 'active' : ''}`} title="Trang chủ">
                 <FiHome />
                 <span className="icon-label">Trang chủ</span>
               </Link>
 
-              <Link to="/cart" className="cart-icon">
+              <Link to="/cart" className={`cart-icon ${location.pathname === '/cart' ? 'active' : ''}`}>
                 <FiShoppingCart />
                 {getTotalItems() > 0 && (
                   <span className="cart-badge">{getTotalItems()}</span>
@@ -162,19 +162,11 @@ const Header = ({ user: userProp }) => {
                 <span className="icon-label">Giỏ hàng</span>
               </Link>
 
-              <button 
-                type="button" 
-                className="mobile-only-icon" 
-                onClick={() => window.dispatchEvent(new Event('openChat'))} 
-                title="Chat"
-              >
-                <FiMessageCircle />
-                <span className="icon-label">Chat</span>
-              </button>
+              <span className="chatbot-slot" aria-hidden="true" />
 
               <div className="user-menu-container" onClick={(e) => e.stopPropagation()}>
                 <button
-                  className="user-icon"
+                  className={`user-icon ${['/account', '/orders', '/login', '/register'].some((path) => location.pathname.startsWith(path)) ? 'active' : ''}`}
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   title={user ? user.name : 'Tài khoản'}
                 >
@@ -203,8 +195,9 @@ const Header = ({ user: userProp }) => {
                   </div>
                 )}
               </div>
+
               <button
-                className="menu-toggle"
+                className={`menu-toggle ${isMenuOpen ? 'active' : ''}`}
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
                 {isMenuOpen ? <FiX /> : <FiMenu />}
@@ -218,16 +211,16 @@ const Header = ({ user: userProp }) => {
       <nav className={`navbar ${isMenuOpen ? 'active' : ''}`}>
         <div className="container">
           <ul className="nav-menu">
-            <li><Link to="/">Trang chủ</Link></li>
+            <li><Link to="/" onClick={() => setIsMenuOpen(false)}>Trang chủ</Link></li>
 
             <li className="nav-item-has-dropdown">
-              <Link to="/products" className="nav-link-root">
+              <Link to="/products" className="nav-link-root" onClick={() => setIsMenuOpen(false)}>
                 Sản phẩm
               </Link>
               <div className="mega-menu">
                 <div className="mega-menu-inner">
                   {visibleCategories.map((cat, index) => (
-                    <Link key={index} to={cat.path} className="mega-menu-link">
+                    <Link key={index} to={cat.path} className="mega-menu-link" onClick={() => setIsMenuOpen(false)}>
                       {cat.name}
                     </Link>
                   ))}
@@ -235,9 +228,9 @@ const Header = ({ user: userProp }) => {
               </div>
             </li>
 
-            <li><Link to="/products?sale=true">Sale Off</Link></li>
-            <li><Link to="/news">Tin tức</Link></li>
-            <li><Link to="/contact">Liên hệ</Link></li>
+            <li><Link to="/products?sale=true" onClick={() => setIsMenuOpen(false)}>Sale Off</Link></li>
+            <li><Link to="/news" onClick={() => setIsMenuOpen(false)}>Tin tức</Link></li>
+            <li><Link to="/contact" onClick={() => setIsMenuOpen(false)}>Liên hệ</Link></li>
           </ul>
         </div>
       </nav>

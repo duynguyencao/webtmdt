@@ -12,6 +12,7 @@ const Products = () => {
   const [showFilters, setShowFilters] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [siteConfig, setSiteConfig] = useState({})
   const [priceBounds, setPriceBounds] = useState({ min: 0, max: 0 })
   const [filters, setFilters] = useState({
     search: searchParams.get('search') || '',
@@ -36,8 +37,9 @@ const Products = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true)
-        const data = await api.getProducts()
+        const [data, config] = await Promise.all([api.getProducts(), api.getSiteConfig()])
         setProducts(data)
+        setSiteConfig(config || {})
         const prices = data.map((p) => Number(p.price) || 0)
         const min = prices.length ? Math.min(...prices) : 0
         const max = prices.length ? Math.max(...prices) : 0
@@ -119,9 +121,17 @@ const Products = () => {
   const priceRangeDenom = Math.max(1, priceBounds.max - priceBounds.min)
   const minPct = ((filters.minPrice - priceBounds.min) / priceRangeDenom) * 100
   const maxPct = ((filters.maxPrice - priceBounds.min) / priceRangeDenom) * 100
+  const desktopGridCols = Math.min(8, Math.max(2, Number(siteConfig.productGridCols) || 4))
 
   return (
     <div className="products-page">
+      <style>{`
+        @media (min-width: 641px) {
+          .products-page .products-grid {
+            grid-template-columns: repeat(${desktopGridCols}, minmax(0, 1fr));
+          }
+        }
+      `}</style>
       <div className="container">
         <div className="products-header">
           <h1 className="page-title">Sản Phẩm</h1>

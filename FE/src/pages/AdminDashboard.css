@@ -194,6 +194,11 @@
   font-size: 0.95rem;
 }
 
+.admin-chart-card input.toggle-switch {
+  width: 44px;
+  padding: 0;
+}
+
 .admin-chart-card input:focus,
 .admin-chart-card textarea:focus,
 .admin-chart-card select:focus {
