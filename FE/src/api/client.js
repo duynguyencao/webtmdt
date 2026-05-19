@@ -171,6 +171,22 @@ export const api = {
     })
   },
 
+  addBanner(url) {
+    return request('/api/site-config/banners', {
+      method: 'POST',
+      headers: { ...this._authHeaders() },
+      body: JSON.stringify({ url })
+    })
+  },
+
+  removeBanner(url) {
+    return request('/api/site-config/banners', {
+      method: 'DELETE',
+      headers: { ...this._authHeaders() },
+      body: JSON.stringify({ url })
+    })
+  },
+
   getMyOrders() {
     return request('/api/orders/me', { headers: { ...this._authHeaders() } })
   },
@@ -288,6 +304,42 @@ export const api = {
     const data = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(data.error || 'Upload ảnh thất bại')
     return data // { url: "https://..." }
+  },
+
+  // Admin: Quản lý tài khoản
+  getUsers(params = {}) {
+    const q = new URLSearchParams()
+    if (params.search) q.set('search', String(params.search).trim())
+    if (params.role) q.set('role', params.role)
+    if (params.page) q.set('page', String(params.page))
+    if (params.limit) q.set('limit', String(params.limit))
+    const query = q.toString()
+    return request(`/api/user/admin/list${query ? `?${query}` : ''}`, { headers: { ...this._authHeaders() } })
+  },
+
+  getUserDetail(id) {
+    return request(`/api/user/admin/${encodeURIComponent(id)}`, { headers: { ...this._authHeaders() } })
+  },
+
+  lockUser(id) {
+    return request(`/api/user/admin/${encodeURIComponent(id)}/lock`, {
+      method: 'PATCH',
+      headers: { ...this._authHeaders() }
+    })
+  },
+
+  unlockUser(id) {
+    return request(`/api/user/admin/${encodeURIComponent(id)}/unlock`, {
+      method: 'PATCH',
+      headers: { ...this._authHeaders() }
+    })
+  },
+
+  deleteUser(id) {
+    return request(`/api/user/admin/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { ...this._authHeaders() }
+    })
   },
 
   createProduct(body) {

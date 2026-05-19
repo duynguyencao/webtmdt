@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Sơ đồ tuần tự - Quản lý Tài khoản (Admin)</title>
+  <style>
+    body { background: #fff; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+    h1 { text-align: center; color: #1a1a2e; font-size: 24px; margin-bottom: 30px; }
+    h2 { color: #333; font-size: 16px; margin-top: 40px; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+    .mermaid { display: flex; justify-content: center; margin-bottom: 40px; }
+  </style>
+</head>
+<body>
+  <h1>Sơ đồ tuần tự: Quản lý Tài khoản (Admin)</h1>
+
+  <h2>1. Xem danh sách tài khoản</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor AD as Admin
+    participant UI as Màn hình QL Tài khoản<br/>(Boundary)
+    participant CTRL as BĐK Tài khoản<br/>(Control)
+    participant EU as Người dùng<br/>(Entity)
+
+    AD->>UI: Truy cập trang quản lý tài khoản
+    UI->>CTRL: Yêu cầu danh sách tài khoản (bộ lọc, phân trang)
+    activate CTRL
+    CTRL->>CTRL: Xác thực quyền Admin
+    CTRL->>EU: Truy vấn danh sách người dùng
+    activate EU
+    EU-->>CTRL: Trả về danh sách tài khoản
+    deactivate EU
+    CTRL-->>UI: Trả về dữ liệu đã xử lý
+    deactivate CTRL
+    UI-->>AD: Hiển thị danh sách tài khoản
+  </div>
+
+  <h2>2. Xem chi tiết tài khoản</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor AD as Admin
+    participant UI as Màn hình QL Tài khoản<br/>(Boundary)
+    participant CTRL as BĐK Tài khoản<br/>(Control)
+    participant EU as Người dùng<br/>(Entity)
+
+    AD->>UI: Chọn tài khoản để xem chi tiết
+    UI->>CTRL: Yêu cầu chi tiết tài khoản (mã người dùng)
+    activate CTRL
+    CTRL->>CTRL: Xác thực quyền Admin
+    CTRL->>EU: Truy vấn tài khoản theo mã người dùng
+    activate EU
+    EU-->>CTRL: Trả về thông tin tài khoản
+    deactivate EU
+    alt Không tìm thấy
+        CTRL-->>UI: Lỗi: Không tìm thấy tài khoản
+        UI-->>AD: Hiển thị thông báo lỗi
+    else Tìm thấy
+        CTRL-->>UI: Trả về chi tiết tài khoản
+        UI-->>AD: Hiển thị chi tiết tài khoản
+    end
+    deactivate CTRL
+  </div>
+
+  <h2>3. Khóa tài khoản</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor AD as Admin
+    participant UI as Màn hình QL Tài khoản<br/>(Boundary)
+    participant CTRL as BĐK Tài khoản<br/>(Control)
+    participant EU as Người dùng<br/>(Entity)
+
+    AD->>UI: Bấm Khóa tài khoản
+    UI->>CTRL: Gửi yêu cầu khóa tài khoản (mã người dùng)
+    activate CTRL
+    CTRL->>CTRL: Xác thực quyền Admin
+    CTRL->>EU: Truy vấn tài khoản theo mã người dùng
+    activate EU
+    EU-->>CTRL: Trả về thông tin tài khoản
+    deactivate EU
+    alt Không tìm thấy
+        CTRL-->>UI: Lỗi: Không tìm thấy tài khoản
+        UI-->>AD: Hiển thị thông báo lỗi
+    else Tài khoản là admin
+        CTRL-->>UI: Lỗi: Không thể khóa tài khoản admin
+        UI-->>AD: Hiển thị thông báo lỗi
+    else Hợp lệ
+        CTRL->>EU: Cập nhật trạng thái isLocked = true
+        activate EU
+        EU-->>CTRL: Xác nhận đã khóa
+        deactivate EU
+        CTRL-->>UI: Khóa tài khoản thành công
+        UI-->>AD: Hiển thị tài khoản đã bị khóa
+    end
+    deactivate CTRL
+    Note over EU: Tài khoản bị khóa sẽ không thể<br/>đăng nhập vào hệ thống
+  </div>
+
+  <h2>4. Mở khóa tài khoản</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor AD as Admin
+    participant UI as Màn hình QL Tài khoản<br/>(Boundary)
+    participant CTRL as BĐK Tài khoản<br/>(Control)
+    participant EU as Người dùng<br/>(Entity)
+
+    AD->>UI: Bấm Mở khóa tài khoản
+    UI->>CTRL: Gửi yêu cầu mở khóa (mã người dùng)
+    activate CTRL
+    CTRL->>CTRL: Xác thực quyền Admin
+    CTRL->>EU: Truy vấn tài khoản theo mã người dùng
+    activate EU
+    EU-->>CTRL: Trả về thông tin tài khoản
+    deactivate EU
+    alt Không tìm thấy
+        CTRL-->>UI: Lỗi: Không tìm thấy tài khoản
+        UI-->>AD: Hiển thị thông báo lỗi
+    else Tài khoản chưa bị khóa
+        CTRL-->>UI: Lỗi: Tài khoản hiện không bị khóa
+        UI-->>AD: Hiển thị thông báo lỗi
+    else Hợp lệ
+        CTRL->>EU: Cập nhật trạng thái isLocked = false
+        activate EU
+        EU-->>CTRL: Xác nhận đã mở khóa
+        deactivate EU
+        CTRL-->>UI: Mở khóa tài khoản thành công
+        UI-->>AD: Hiển thị tài khoản đã mở khóa
+    end
+    deactivate CTRL
+  </div>
+
+  <h2>5. Xóa tài khoản</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor AD as Admin
+    participant UI as Màn hình QL Tài khoản<br/>(Boundary)
+    participant CTRL as BĐK Tài khoản<br/>(Control)
+    participant EU as Người dùng<br/>(Entity)
+    participant EO as Đơn hàng<br/>(Entity)
+
+    AD->>UI: Bấm Xóa tài khoản
+    UI->>CTRL: Gửi yêu cầu xóa tài khoản (mã người dùng)
+    activate CTRL
+    CTRL->>CTRL: Xác thực quyền Admin
+    CTRL->>EU: Truy vấn tài khoản theo mã người dùng
+    activate EU
+    EU-->>CTRL: Trả về thông tin tài khoản
+    deactivate EU
+    alt Không tìm thấy
+        CTRL-->>UI: Lỗi: Không tìm thấy tài khoản
+        UI-->>AD: Hiển thị thông báo lỗi
+    else Tài khoản là admin
+        CTRL-->>UI: Lỗi: Không thể xóa tài khoản admin
+        UI-->>AD: Hiển thị thông báo lỗi
+    else Hợp lệ
+        CTRL->>EO: Kiểm tra đơn hàng đang xử lý của người dùng
+        activate EO
+        EO-->>CTRL: Kết quả kiểm tra
+        deactivate EO
+        alt Còn đơn hàng đang xử lý
+            CTRL-->>UI: Lỗi: Người dùng còn đơn hàng đang xử lý
+            UI-->>AD: Hiển thị thông báo lỗi
+        else Không còn đơn đang xử lý
+            CTRL->>EU: Xóa tài khoản khỏi hệ thống
+            activate EU
+            EU-->>CTRL: Xác nhận đã xóa
+            deactivate EU
+            CTRL-->>UI: Xóa tài khoản thành công
+            UI-->>AD: Hiển thị thông báo đã xóa
+        end
+    end
+    deactivate CTRL
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({startOnLoad:true, theme:'neutral', sequence:{mirrorActors:false, width:200}});</script>
+</body>
+</html>

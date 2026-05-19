@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Sơ đồ tuần tự - Module Mua hàng</title>
+  <style>
+    body { background: #fff; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+    h1 { text-align: center; color: #1a1a2e; font-size: 24px; margin-bottom: 30px; }
+    h2 { color: #333; font-size: 16px; margin-top: 40px; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+    .mermaid { display: flex; justify-content: center; margin-bottom: 40px; }
+  </style>
+</head>
+<body>
+  <h1>Sơ đồ tuần tự: Module Mua hàng</h1>
+
+  <h2>1. Thêm sản phẩm vào giỏ hàng</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor KH as Khách hàng
+    participant UI as Màn hình Sản phẩm<br/>(Boundary)
+    participant CTRL as BĐK Giỏ hàng<br/>(Control)
+    participant EC as Giỏ hàng<br/>(Entity)
+    participant EP as Sản phẩm<br/>(Entity)
+
+    KH->>UI: Bấm Thêm vào giỏ hàng
+    UI->>CTRL: Gửi yêu cầu thêm SP (mã SP, số lượng)
+    activate CTRL
+    CTRL->>CTRL: Xác thực đăng nhập (JWT)
+    CTRL->>EC: Tìm giỏ hàng của người dùng
+    activate EC
+    EC-->>CTRL: Giỏ hàng hiện tại
+    deactivate EC
+    alt Giỏ hàng chưa tồn tại
+        CTRL->>EC: Tạo giỏ hàng mới với SP đầu tiên
+        activate EC
+        EC-->>CTRL: Giỏ hàng đã tạo
+        deactivate EC
+    else SP đã có trong giỏ
+        CTRL->>EC: Cập nhật số lượng SP trong giỏ
+        activate EC
+        EC-->>CTRL: Giỏ hàng đã cập nhật
+        deactivate EC
+    else SP chưa có trong giỏ
+        CTRL->>EC: Thêm SP mới vào giỏ
+        activate EC
+        EC-->>CTRL: Giỏ hàng đã cập nhật
+        deactivate EC
+    end
+    CTRL->>EP: Truy vấn thông tin SP (tên, giá, ảnh, tồn kho)
+    activate EP
+    EP-->>CTRL: Thông tin SP chi tiết
+    deactivate EP
+    CTRL-->>UI: Trả về giỏ hàng đã cập nhật
+    deactivate CTRL
+    UI-->>KH: Hiển thị thông báo đã thêm vào giỏ
+  </div>
+
+  <h2>2. Xem giỏ hàng</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor KH as Khách hàng
+    participant UI as Màn hình Giỏ hàng<br/>(Boundary)
+    participant CTRL as BĐK Giỏ hàng<br/>(Control)
+    participant EC as Giỏ hàng<br/>(Entity)
+    participant EP as Sản phẩm<br/>(Entity)
+
+    KH->>UI: Truy cập trang giỏ hàng
+    UI->>CTRL: Yêu cầu lấy giỏ hàng
+    activate CTRL
+    CTRL->>CTRL: Xác thực đăng nhập (JWT)
+    CTRL->>EC: Tìm giỏ hàng của người dùng
+    activate EC
+    EC-->>CTRL: Danh sách items trong giỏ
+    deactivate EC
+    loop Với mỗi SP trong giỏ
+        CTRL->>EP: Truy vấn thông tin SP (tên, giá, ảnh, tồn kho)
+        activate EP
+        EP-->>CTRL: Thông tin SP chi tiết
+        deactivate EP
+    end
+    CTRL-->>UI: Trả về giỏ hàng đầy đủ thông tin
+    deactivate CTRL
+    UI-->>KH: Hiển thị giỏ hàng
+  </div>
+
+  <h2>3. Xóa sản phẩm khỏi giỏ hàng</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor KH as Khách hàng
+    participant UI as Màn hình Giỏ hàng<br/>(Boundary)
+    participant CTRL as BĐK Giỏ hàng<br/>(Control)
+    participant EC as Giỏ hàng<br/>(Entity)
+    participant EP as Sản phẩm<br/>(Entity)
+
+    KH->>UI: Bấm Xóa sản phẩm khỏi giỏ
+    UI->>CTRL: Gửi yêu cầu xóa SP (mã SP)
+    activate CTRL
+    CTRL->>CTRL: Xác thực đăng nhập (JWT)
+    CTRL->>EC: Tìm giỏ hàng của người dùng
+    activate EC
+    EC-->>CTRL: Giỏ hàng hiện tại
+    deactivate EC
+    CTRL->>EC: Xóa SP khỏi danh sách items
+    activate EC
+    EC-->>CTRL: Giỏ hàng đã cập nhật
+    deactivate EC
+    CTRL->>EP: Truy vấn thông tin SP còn lại
+    activate EP
+    EP-->>CTRL: Thông tin SP chi tiết
+    deactivate EP
+    CTRL-->>UI: Trả về giỏ hàng sau khi xóa
+    deactivate CTRL
+    UI-->>KH: Hiển thị giỏ hàng đã cập nhật
+  </div>
+
+  <h2>4. Đặt hàng (COD)</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor KH as Khách hàng
+    participant UI as Màn hình Thanh toán<br/>(Boundary)
+    participant CTRL as BĐK Đơn hàng<br/>(Control)
+    participant EO as Đơn hàng<br/>(Entity)
+    participant EP as Sản phẩm<br/>(Entity)
+    participant EC as Mã giảm giá<br/>(Entity)
+
+    KH->>UI: Nhập thông tin nhận hàng, bấm Đặt hàng COD
+    UI->>CTRL: Gửi yêu cầu đặt hàng (thông tin KH, danh sách SP, mã giảm giá)
+    activate CTRL
+    CTRL->>CTRL: Xác thực đăng nhập (JWT)
+    CTRL->>CTRL: Kiểm tra dữ liệu hợp lệ
+    CTRL->>CTRL: Sinh mã đơn hàng (ORD000001)
+    loop Kiểm tra tồn kho từng SP
+        CTRL->>EP: Truy vấn SP và kiểm tra tồn kho
+        activate EP
+        EP-->>CTRL: Thông tin SP và số lượng tồn
+        deactivate EP
+    end
+    alt Có SP hết hàng
+        CTRL-->>UI: Lỗi: Sản phẩm đã hết hàng
+        UI-->>KH: Hiển thị thông báo lỗi
+    else Đủ hàng
+        opt Có mã giảm giá
+            CTRL->>EC: Kiểm tra mã giảm giá hợp lệ
+            activate EC
+            EC-->>CTRL: Thông tin mã giảm giá
+            deactivate EC
+            CTRL->>CTRL: Tính số tiền được giảm
+        end
+        loop Trừ tồn kho từng SP
+            CTRL->>EP: Trừ số lượng tồn kho
+            activate EP
+            EP-->>CTRL: Xác nhận đã trừ kho
+            deactivate EP
+        end
+        CTRL->>EO: Tạo đơn hàng mới (trạng thái: chờ xác nhận)
+        activate EO
+        EO-->>CTRL: Đơn hàng đã tạo
+        deactivate EO
+        CTRL-->>UI: Đặt hàng thành công, chờ admin xác nhận
+        UI-->>KH: Hiển thị xác nhận đơn hàng
+    end
+    deactivate CTRL
+  </div>
+
+  <h2>5. Đặt hàng (PayOS - Thanh toán trực tuyến)</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor KH as Khách hàng
+    participant UI as Màn hình Thanh toán<br/>(Boundary)
+    participant CTRL as BĐK Đơn hàng<br/>(Control)
+    participant EO as Đơn hàng<br/>(Entity)
+    participant EP as Sản phẩm<br/>(Entity)
+    participant PA as Cổng thanh toán PayOS<br/>(Boundary)
+
+    KH->>UI: Nhập thông tin nhận hàng, chọn PayOS
+    UI->>CTRL: Gửi yêu cầu đặt hàng (phương thức: PayOS)
+    activate CTRL
+    CTRL->>CTRL: Xác thực đăng nhập + kiểm tra dữ liệu
+    CTRL->>CTRL: Sinh mã đơn hàng
+    loop Kiểm tra và trừ tồn kho
+        CTRL->>EP: Kiểm tra tồn kho và trừ số lượng
+        activate EP
+        EP-->>CTRL: Xác nhận đã trừ kho
+        deactivate EP
+    end
+    CTRL->>EO: Tạo đơn hàng (trạng thái: chờ thanh toán)
+    activate EO
+    EO-->>CTRL: Đơn hàng đã tạo
+    deactivate EO
+    CTRL->>PA: Tạo link thanh toán (mã đơn, số tiền, danh sách SP)
+    activate PA
+    PA-->>CTRL: Trả về link thanh toán
+    deactivate PA
+    CTRL->>EO: Lưu thông tin thanh toán PayOS
+    activate EO
+    EO-->>CTRL: Đã lưu
+    deactivate EO
+    CTRL-->>UI: Trả về link thanh toán
+    deactivate CTRL
+    UI-->>KH: Chuyển hướng đến trang thanh toán PayOS
+    KH->>PA: Thực hiện thanh toán
+    PA-->>CTRL: Webhook xác nhận thanh toán thành công
+    activate CTRL
+    CTRL->>CTRL: Xác minh chữ ký webhook
+    CTRL->>EO: Cập nhật trạng thái: đã thanh toán + đã xác nhận
+    activate EO
+    EO-->>CTRL: Xác nhận cập nhật thành công
+    deactivate EO
+    deactivate CTRL
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({startOnLoad:true, theme:'neutral', sequence:{mirrorActors:false, width:200}});</script>
+</body>
+</html>

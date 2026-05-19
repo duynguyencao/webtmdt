@@ -3,6 +3,9 @@
  *
  * Mỗi cấu hình là 1 document với key='home' (hiện chỉ có 1 config duy nhất).
  * Admin có thể thay đổi tiêu đề, subtitle, ảnh hero, và số cột grid sản phẩm.
+ *
+ * banners: danh sách URL ảnh đã upload — admin chọn ảnh từ danh sách này
+ *          để gán vào heroImage, hoặc xóa ảnh không dùng nữa.
  */
 
 import mongoose from 'mongoose'
@@ -14,8 +17,10 @@ const siteConfigSchema = new mongoose.Schema({
   heroTitle: { type: String, default: 'Cửa Hàng Cầu Lông Chuyên Nghiệp' },
   // Phụ đề hero banner
   heroSubtitle: { type: String, default: 'Hơn 50 chi nhánh trên toàn quốc. Sản phẩm chính hãng, giá tốt nhất thị trường.' },
-  // URL ảnh hero banner
+  // URL ảnh hero banner đang dùng (admin chọn từ banners hoặc upload mới)
   heroImage: { type: String, default: '' },
+  // Danh sách URL ảnh đã upload (thư viện ảnh banner để chọn lại)
+  banners: { type: [String], default: [] },
   // Tiêu đề phần sale
   saleTitle: { type: String, default: 'Sale Off Lên Đến 50%' },
   // Số cột hiển thị grid sản phẩm (2-8 cột)

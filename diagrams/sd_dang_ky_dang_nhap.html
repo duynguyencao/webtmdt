@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Sơ đồ tuần tự - Đăng ký & Đăng nhập</title>
+  <style>
+    body { background: #fff; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+    h1 { text-align: center; color: #1a1a2e; font-size: 24px; margin-bottom: 30px; }
+    h2 { color: #333; font-size: 16px; margin-top: 40px; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+    .mermaid { display: flex; justify-content: center; margin-bottom: 40px; }
+  </style>
+</head>
+<body>
+  <h1>Sơ đồ tuần tự: Đăng ký & Đăng nhập</h1>
+
+  <h2>1. Đăng ký tài khoản</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor KH as Người dùng
+    participant UI as Màn hình Đăng ký<br/>(Boundary)
+    participant CTRL as BĐK Người dùng<br/>(Control)
+    participant EU as Người dùng<br/>(Entity)
+    participant EM as Dịch vụ Email<br/>(Boundary)
+
+    KH->>UI: Nhập tên, email, mật khẩu và bấm Đăng ký
+    UI->>CTRL: Gửi yêu cầu đăng ký (tên, email, mật khẩu)
+    activate CTRL
+    CTRL->>CTRL: Kiểm tra dữ liệu hợp lệ
+    CTRL->>EU: Tìm người dùng theo email
+    activate EU
+    EU-->>CTRL: Kết quả tìm kiếm
+    deactivate EU
+    alt Email đã tồn tại và đã xác thực
+        CTRL-->>UI: Lỗi: Email đã được sử dụng
+        UI-->>KH: Hiển thị thông báo lỗi
+    else Email tồn tại nhưng chưa xác thực
+        CTRL->>CTRL: Tạo token xác thực email (JWT 24h)
+        CTRL->>EM: Gửi lại email xác thực
+        activate EM
+        EM-->>CTRL: Xác nhận đã gửi email
+        deactivate EM
+        CTRL-->>UI: Đã gửi lại link xác thực vào email
+        UI-->>KH: Hiển thị thông báo kiểm tra email
+    else Email chưa tồn tại
+        CTRL->>CTRL: Mã hóa mật khẩu (bcrypt)
+        CTRL->>EU: Tạo tài khoản mới (role: buyer, chưa xác thực)
+        activate EU
+        EU-->>CTRL: Tài khoản đã tạo
+        deactivate EU
+        CTRL->>CTRL: Tạo token xác thực email (JWT 24h)
+        CTRL->>EM: Gửi email xác thực đến người dùng
+        activate EM
+        EM-->>CTRL: Xác nhận đã gửi email
+        deactivate EM
+        CTRL-->>UI: Đăng ký thành công, vui lòng kiểm tra email
+        UI-->>KH: Hiển thị thông báo kiểm tra email
+    end
+    deactivate CTRL
+  </div>
+
+  <h2>2. Xác thực email</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor KH as Người dùng
+    participant EM as Email<br/>(Boundary)
+    participant UI as Màn hình Xác thực<br/>(Boundary)
+    participant CTRL as BĐK Người dùng<br/>(Control)
+    participant EU as Người dùng<br/>(Entity)
+
+    KH->>EM: Mở email và nhấn link xác thực
+    EM->>UI: Chuyển hướng đến trang xác thực (kèm token)
+    UI->>CTRL: Gửi yêu cầu xác thực email (token)
+    activate CTRL
+    CTRL->>CTRL: Giải mã và kiểm tra token JWT
+    alt Token không hợp lệ hoặc hết hạn
+        CTRL-->>UI: Lỗi: Token không hợp lệ hoặc hết hạn
+        UI-->>KH: Hiển thị thông báo lỗi
+    else Token hợp lệ
+        CTRL->>EU: Tìm người dùng theo userId trong token
+        activate EU
+        EU-->>CTRL: Thông tin người dùng
+        deactivate EU
+        CTRL->>EU: Cập nhật emailVerified = true
+        activate EU
+        EU-->>CTRL: Xác nhận cập nhật thành công
+        deactivate EU
+        CTRL->>CTRL: Tạo JWT đăng nhập (7 ngày)
+        CTRL-->>UI: Xác thực thành công + JWT token
+        UI-->>KH: Tự động đăng nhập và chuyển về trang chủ
+    end
+    deactivate CTRL
+  </div>
+
+  <h2>3. Đăng nhập</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor KH as Người dùng
+    participant UI as Màn hình Đăng nhập<br/>(Boundary)
+    participant CTRL as BĐK Người dùng<br/>(Control)
+    participant EU as Người dùng<br/>(Entity)
+
+    KH->>UI: Nhập email, mật khẩu và bấm Đăng nhập
+    UI->>CTRL: Gửi yêu cầu đăng nhập (email, mật khẩu)
+    activate CTRL
+    CTRL->>CTRL: Kiểm tra dữ liệu hợp lệ
+    CTRL->>EU: Tìm người dùng theo email
+    activate EU
+    EU-->>CTRL: Kết quả tìm kiếm
+    deactivate EU
+    alt Email không tồn tại
+        CTRL-->>UI: Lỗi: Email hoặc mật khẩu sai
+        UI-->>KH: Hiển thị thông báo lỗi
+    else Mật khẩu không đúng
+        CTRL->>CTRL: So sánh mật khẩu (bcrypt)
+        CTRL-->>UI: Lỗi: Email hoặc mật khẩu sai
+        UI-->>KH: Hiển thị thông báo lỗi
+    else Chưa xác thực email
+        CTRL-->>UI: Lỗi: Chưa xác thực email
+        UI-->>KH: Hiển thị yêu cầu kiểm tra email
+    else Đăng nhập thành công
+        CTRL->>CTRL: So sánh mật khẩu (bcrypt)
+        CTRL->>CTRL: Tạo JWT token (7 ngày)
+        CTRL-->>UI: Trả về JWT token + thông tin người dùng
+        UI-->>KH: Chuyển về trang chủ
+    end
+    deactivate CTRL
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({startOnLoad:true, theme:'neutral', sequence:{mirrorActors:false, width:200}});</script>
+</body>
+</html>

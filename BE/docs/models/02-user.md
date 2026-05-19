@@ -50,6 +50,13 @@ Một user có thể là:
   - enum: `buyer | admin | shipper`
   - default: `buyer`
 
+### 5) Trạng thái tài khoản
+
+- `isLocked` (Boolean, default false)
+  - Admin có thể khóa tài khoản qua API `/api/user/admin/:id/lock`.
+  - Khi `isLocked=true`, user không thể đăng nhập (route login trả 403).
+  - Admin không thể khóa tài khoản có role `admin`.
+
 ## Hook `pre('save')` — tự hash mật khẩu
 
 Đoạn:

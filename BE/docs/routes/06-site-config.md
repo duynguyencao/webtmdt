@@ -46,3 +46,46 @@ Luồng:
   - `$setOnInsert: { key: 'home' }`
   - `upsert: true` để nếu chưa có thì tạo mới
 
+## 3) `POST /api/site-config/banners` (admin)
+
+Middleware:
+
+- `verifyToken`
+- `requireRole('admin')`
+
+Mục tiêu:
+
+- Thêm URL ảnh vào thư viện banners (dùng `$addToSet` tránh trùng).
+
+Body:
+
+- `{ url: "https://..." }`
+
+Luồng:
+
+- Validate url không rỗng.
+- `findOneAndUpdate` với `$addToSet: { banners: url }`.
+- Trả `{ banners: [...] }`.
+
+## 4) `DELETE /api/site-config/banners` (admin)
+
+Middleware:
+
+- `verifyToken`
+- `requireRole('admin')`
+
+Mục tiêu:
+
+- Xóa URL ảnh khỏi thư viện banners.
+- Nếu ảnh đang dùng làm `heroImage` → tự động reset `heroImage` thành rỗng.
+
+Body:
+
+- `{ url: "https://..." }`
+
+Luồng:
+
+- Lọc bỏ url khỏi mảng `banners`.
+- Nếu `cfg.heroImage === url` → set `heroImage = ''`.
+- Trả `{ banners: [...], heroImage: "..." }`.
+

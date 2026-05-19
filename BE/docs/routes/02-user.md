@@ -112,7 +112,8 @@ Luồng xử lý:
 2. Tìm user theo email.
 3. So password bằng `user.comparePassword`.
 4. Nếu `emailVerified=false` → chặn với 403.
-5. Nếu OK:
+5. Nếu `isLocked=true` → chặn với 403 ("Tài khoản đã bị khóa").
+6. Nếu OK:
    - tạo token bằng `createToken(user)`
    - trả `{ token, user }`
 
@@ -152,4 +153,41 @@ Mục tiêu:
 
 - Route đọc từng field nếu client gửi lên thì mới set.
 - Có cả field mới (code/name hành chính) và field cũ (legacy).
+
+## 10) Admin — Quản lý tài khoản
+
+Tất cả endpoints dưới đây yêu cầu JWT + role `admin`:
+
+### `GET /api/user/admin/list`
+
+- Lấy danh sách tất cả tài khoản.
+- Hỗ trợ query params:
+  - `search`: tìm theo tên hoặc email (regex case-insensitive).
+  - `role`: lọc theo role (`buyer`, `admin`, `shipper`).
+  - `page`, `limit`: phân trang (nếu không truyền → trả tất cả).
+- Trả về mảng user (không có password).
+
+### `GET /api/user/admin/:id`
+
+- Lấy chi tiết 1 tài khoản theo ID.
+- Trả 404 nếu không tìm thấy.
+
+### `PATCH /api/user/admin/:id/lock`
+
+- Khóa tài khoản (`isLocked=true`).
+- Chặn: không cho khóa tài khoản có role `admin`.
+- Chặn: nếu tài khoản đã bị khóa trước đó.
+- Khi bị khóa, user không thể đăng nhập.
+
+### `PATCH /api/user/admin/:id/unlock`
+
+- Mở khóa tài khoản (`isLocked=false`).
+- Chặn: nếu tài khoản hiện không bị khóa.
+
+### `DELETE /api/user/admin/:id`
+
+- Xóa vĩnh viễn tài khoản.
+- Chặn: không cho xóa tài khoản có role `admin`.
+- Chặn: nếu user còn đơn hàng đang xử lý (`pending`, `confirmed`, `shipped`).
+- Dùng `Order.countDocuments` để kiểm tra trước khi xóa.
 

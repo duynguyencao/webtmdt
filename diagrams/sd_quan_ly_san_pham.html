@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Sơ đồ tuần tự - Quản lý Sản phẩm (Admin)</title>
+  <style>
+    body { background: #fff; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+    h1 { text-align: center; color: #1a1a2e; font-size: 24px; margin-bottom: 30px; }
+    h2 { color: #333; font-size: 16px; margin-top: 40px; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+    .mermaid { display: flex; justify-content: center; margin-bottom: 40px; }
+  </style>
+</head>
+<body>
+  <h1>Sơ đồ tuần tự: Quản lý Sản phẩm (Admin)</h1>
+
+  <h2>1. Xem danh sách sản phẩm</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor AD as Admin
+    participant UI as Màn hình QL SP<br/>(Boundary)
+    participant CTRL as BĐK Sản phẩm<br/>(Control)
+    participant EP as Sản phẩm<br/>(Entity)
+
+    AD->>UI: Truy cập trang quản lý sản phẩm
+    UI->>CTRL: Yêu cầu danh sách SP (bộ lọc, phân trang)
+    activate CTRL
+    CTRL->>EP: Truy vấn danh sách SP đang hoạt động
+    activate EP
+    EP-->>CTRL: Trả về danh sách SP
+    deactivate EP
+    CTRL-->>UI: Trả về dữ liệu đã xử lý
+    deactivate CTRL
+    UI-->>AD: Hiển thị danh sách sản phẩm
+  </div>
+
+  <h2>2. Thêm sản phẩm mới</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor AD as Admin
+    participant UI as Màn hình QL SP<br/>(Boundary)
+    participant CTRL as BĐK Sản phẩm<br/>(Control)
+    participant EP as Sản phẩm<br/>(Entity)
+
+    AD->>UI: Nhập thông tin SP, bấm Thêm
+    UI->>CTRL: Gửi yêu cầu thêm SP (tên, giá, ảnh, tồn kho)
+    activate CTRL
+    CTRL->>CTRL: Xác thực quyền Admin
+    CTRL->>CTRL: Kiểm tra và chuẩn hóa dữ liệu
+    CTRL->>EP: Lấy mã SP lớn nhất hiện tại
+    activate EP
+    EP-->>CTRL: Mã SP lớn nhất
+    deactivate EP
+    CTRL->>EP: Tạo sản phẩm mới (mã = max + 1)
+    activate EP
+    EP-->>CTRL: Xác nhận tạo thành công
+    deactivate EP
+    CTRL-->>UI: Trả về thông tin SP đã tạo
+    deactivate CTRL
+    UI-->>AD: Hiển thị thông báo thêm thành công
+  </div>
+
+  <h2>3. Cập nhật sản phẩm</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor AD as Admin
+    participant UI as Màn hình QL SP<br/>(Boundary)
+    participant CTRL as BĐK Sản phẩm<br/>(Control)
+    participant EP as Sản phẩm<br/>(Entity)
+
+    AD->>UI: Sửa thông tin SP, bấm Lưu
+    UI->>CTRL: Gửi yêu cầu cập nhật (mã SP, dữ liệu mới)
+    activate CTRL
+    CTRL->>CTRL: Xác thực quyền Admin
+    CTRL->>CTRL: Chuẩn hóa dữ liệu sản phẩm
+    CTRL->>EP: Cập nhật sản phẩm theo mã SP
+    activate EP
+    EP-->>CTRL: Trả về SP đã cập nhật
+    deactivate EP
+    alt Không tìm thấy
+        CTRL-->>UI: Lỗi: Không tìm thấy sản phẩm
+        UI-->>AD: Hiển thị thông báo lỗi
+    else Thành công
+        CTRL-->>UI: Trả về kết quả cập nhật
+        UI-->>AD: Hiển thị SP đã cập nhật
+    end
+    deactivate CTRL
+  </div>
+
+  <h2>4. Xóa mềm sản phẩm</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor AD as Admin
+    participant UI as Màn hình QL SP<br/>(Boundary)
+    participant CTRL as BĐK Sản phẩm<br/>(Control)
+    participant EP as Sản phẩm<br/>(Entity)
+
+    AD->>UI: Bấm Xóa sản phẩm
+    UI->>CTRL: Gửi yêu cầu xóa SP (mã SP)
+    activate CTRL
+    CTRL->>CTRL: Xác thực quyền Admin
+    CTRL->>EP: Đánh dấu xóa mềm sản phẩm
+    activate EP
+    EP-->>CTRL: Xác nhận đã xóa mềm
+    deactivate EP
+    alt Không tìm thấy
+        CTRL-->>UI: Lỗi: Không tìm thấy sản phẩm
+        UI-->>AD: Hiển thị thông báo lỗi
+    else Thành công
+        CTRL-->>UI: Trả về kết quả xóa
+        UI-->>AD: Hiển thị thông báo đã xóa
+    end
+    deactivate CTRL
+    Note over EP: Xóa mềm: SP vẫn lưu trong CSDL để giữ lịch sử đơn hàng
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({startOnLoad:true, theme:'neutral', sequence:{mirrorActors:false, width:200}});</script>
+</body>
+</html>

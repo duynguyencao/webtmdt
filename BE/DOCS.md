@@ -159,6 +159,7 @@ Mục tiêu chung: mô tả “mỗi loại dữ liệu lưu trong DB trông nh�
 - `emailVerified`: bắt buộc xác thực email trước khi login.
 - Thông tin giao hàng: `phone`, `address` (line1 + mã/tên tỉnh-huyện-xã).
 - `role`: `buyer | admin | shipper`.
+- `isLocked`: tài khoản bị khóa bởi admin → không thể đăng nhập.
 
 Điểm quan trọng:
 
@@ -222,6 +223,7 @@ Index unique `(productId, userId, orderId)` để 1 lần mua chỉ đánh giá 
 Cấu hình trang chủ:
 
 - `heroTitle`, `heroSubtitle`, `heroImage`, `saleTitle`, `productGridCols`.
+- `banners`: mảng URL ảnh đã upload — thư viện ảnh banner để admin chọn lại hoặc xóa.
 
 ### `BE/models/OrderCounter.js`
 
@@ -267,6 +269,7 @@ Nhóm API user:
 - `POST /login`:
   - Check email + password.
   - Chặn nếu chưa verify email.
+  - Chặn nếu tài khoản bị khóa (`isLocked`).
   - Trả token + user.
 - `GET /verify-email?token=...`:
   - Verify token.
@@ -276,6 +279,14 @@ Nhóm API user:
   - Cần đăng nhập, trả user hiện tại.
 - `PUT /me`:
   - Cập nhật name/phone/address.
+
+**Admin endpoints (cần JWT + role admin):**
+
+- `GET /admin/list`: danh sách tất cả tài khoản (tìm kiếm theo tên/email, lọc role, phân trang).
+- `GET /admin/:id`: chi tiết 1 tài khoản.
+- `PATCH /admin/:id/lock`: khóa tài khoản (không cho phép khóa admin).
+- `PATCH /admin/:id/unlock`: mở khóa tài khoản.
+- `DELETE /admin/:id`: xóa tài khoản vĩnh viễn (chặn nếu còn đơn hàng đang xử lý, không cho xóa admin).
 
 ### `BE/routes/orderRouter.js`
 
@@ -329,8 +340,10 @@ Chỉ có webhook PayOS:
 
 ### `BE/routes/siteConfigRouter.js`
 
-- `GET /`: công khai, lấy config trang chủ.
-- `PUT /`: admin cập nhật config.
+- `GET /`: công khai, lấy config trang chủ (bao gồm `banners[]`).
+- `PUT /`: admin cập nhật config (heroTitle, heroSubtitle, heroImage, saleTitle, productGridCols).
+- `POST /banners`: admin thêm URL ảnh vào thư viện banners (dùng `$addToSet` tránh trùng).
+- `DELETE /banners`: admin xóa URL ảnh khỏi thư viện. Nếu ảnh đang dùng làm `heroImage` → tự reset `heroImage` thành rỗng.
 
 ### `BE/routes/cartRouter.js`
 
@@ -483,7 +496,7 @@ Mục đích: gọi `syncIndexes()` cho các model để DB khớp với index k
 
 ---
 
-## 10) “Đọc luồng” theo nhu cầu (gợi ý)
+## 10) "Đọc luồng" theo nhu cầu (gợi ý)
 
 - **FE gọi danh sách sản phẩm**: `index.js` → `routes/productRouter.js` → `models/Product.js`
 - **Đăng ký / xác thực email / đăng nhập**: `routes/userRouter.js` → `models/User.js` → `middleware/auth.js`
@@ -492,4 +505,5 @@ Mục đích: gọi `syncIndexes()` cho các model để DB khớp với index k
 - **Giỏ hàng**: `routes/cartRouter.js` → `models/Cart.js` + `models/Product.js`
 - **Đánh giá**: `routes/reviewRouter.js` → `models/Review.js` + `models/Order.js` + update `models/Product.js`
 - **Chatbot**: `routes/chatRouter.js` → `services/productContext.js` → `services/geminiService.js`
-
+- **Quản lý tài khoản (admin)**: `routes/userRouter.js` (admin endpoints) → `models/User.js` (`isLocked`) + `models/Order.js` (kiểm tra đơn khi xóa)
+- **Quản lý banner trang chủ**: `routes/siteConfigRouter.js` (`/banners`) → `models/SiteConfig.js` (`banners[]`, `heroImage`) → `routes/uploadRouter.js` (upload ảnh lên Supabase)

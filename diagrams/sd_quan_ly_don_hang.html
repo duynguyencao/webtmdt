@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Sơ đồ tuần tự - Quản lý Đơn hàng (Admin)</title>
+  <style>
+    body { background: #fff; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+    h1 { text-align: center; color: #1a1a2e; font-size: 24px; margin-bottom: 30px; }
+    h2 { color: #333; font-size: 16px; margin-top: 40px; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+    .mermaid { display: flex; justify-content: center; margin-bottom: 40px; }
+  </style>
+</head>
+<body>
+  <h1>Sơ đồ tuần tự: Quản lý Đơn hàng (Admin)</h1>
+
+  <h2>1. Xem tất cả đơn hàng</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor AD as Admin
+    participant UI as Màn hình QL ĐH<br/>(Boundary)
+    participant CTRL as BĐK Đơn hàng<br/>(Control)
+    participant EO as Đơn hàng<br/>(Entity)
+
+    AD->>UI: Truy cập trang quản lý đơn hàng
+    UI->>CTRL: Yêu cầu danh sách ĐH (bộ lọc, phân trang)
+    activate CTRL
+    CTRL->>CTRL: Xác thực quyền Admin
+    CTRL->>EO: Truy vấn danh sách đơn hàng
+    activate EO
+    EO-->>CTRL: Trả về danh sách đơn hàng
+    deactivate EO
+    CTRL-->>UI: Trả về dữ liệu đã xử lý
+    deactivate CTRL
+    UI-->>AD: Hiển thị danh sách đơn hàng
+  </div>
+
+  <h2>2. Xem chi tiết đơn hàng</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor AD as Admin
+    participant UI as Màn hình QL ĐH<br/>(Boundary)
+    participant CTRL as BĐK Đơn hàng<br/>(Control)
+    participant EO as Đơn hàng<br/>(Entity)
+
+    AD->>UI: Chọn đơn hàng để xem chi tiết
+    UI->>CTRL: Yêu cầu chi tiết ĐH (mã đơn)
+    activate CTRL
+    CTRL->>CTRL: Xác thực quyền Admin
+    CTRL->>EO: Truy vấn đơn hàng theo mã đơn
+    activate EO
+    EO-->>CTRL: Trả về thông tin đơn hàng
+    deactivate EO
+    alt Không tìm thấy
+        CTRL-->>UI: Lỗi: Không tìm thấy đơn hàng
+        UI-->>AD: Hiển thị thông báo lỗi
+    else Tìm thấy
+        CTRL-->>UI: Trả về chi tiết đơn hàng
+        UI-->>AD: Hiển thị chi tiết đơn hàng
+    end
+    deactivate CTRL
+  </div>
+
+  <h2>3. Xác nhận đơn hàng COD</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor AD as Admin
+    participant UI as Màn hình QL ĐH<br/>(Boundary)
+    participant CTRL as BĐK Đơn hàng<br/>(Control)
+    participant EO as Đơn hàng<br/>(Entity)
+
+    AD->>UI: Bấm Xác nhận đơn hàng
+    UI->>CTRL: Gửi yêu cầu xác nhận đơn (mã đơn)
+    activate CTRL
+    CTRL->>CTRL: Xác thực quyền Admin
+    CTRL->>EO: Truy vấn đơn hàng theo mã đơn
+    activate EO
+    EO-->>CTRL: Trả về thông tin đơn hàng
+    deactivate EO
+    CTRL->>CTRL: Kiểm tra trạng thái và phương thức thanh toán
+    alt Trạng thái không hợp lệ hoặc không phải COD
+        CTRL-->>UI: Lỗi: Không thể xác nhận đơn này
+        UI-->>AD: Hiển thị thông báo lỗi
+    else Hợp lệ
+        CTRL->>EO: Cập nhật trạng thái thành Đã xác nhận
+        activate EO
+        EO-->>CTRL: Xác nhận cập nhật thành công
+        deactivate EO
+        CTRL-->>UI: Trả về kết quả xác nhận
+        UI-->>AD: Hiển thị đơn hàng đã xác nhận
+    end
+    deactivate CTRL
+  </div>
+
+  <h2>4. Hủy đơn hàng (hoàn kho + hoàn coupon)</h2>
+  <div class="mermaid">
+sequenceDiagram
+    actor AD as Admin
+    participant UI as Màn hình QL ĐH<br/>(Boundary)
+    participant CTRL as BĐK Đơn hàng<br/>(Control)
+    participant EO as Đơn hàng<br/>(Entity)
+    participant EP as Sản phẩm<br/>(Entity)
+    participant EC as Mã giảm giá<br/>(Entity)
+
+    AD->>UI: Bấm Hủy đơn hàng
+    UI->>CTRL: Gửi yêu cầu hủy đơn (mã đơn)
+    activate CTRL
+    CTRL->>CTRL: Xác thực quyền Admin
+    CTRL->>EO: Truy vấn đơn hàng theo mã đơn
+    activate EO
+    EO-->>CTRL: Trả về thông tin đơn hàng
+    deactivate EO
+    CTRL->>CTRL: Kiểm tra trạng thái cho phép hủy
+    alt Không cho phép hủy
+        CTRL-->>UI: Lỗi: Không thể hủy đơn ở trạng thái này
+        UI-->>AD: Hiển thị thông báo lỗi
+    else Hợp lệ
+        opt Đơn đã sử dụng mã giảm giá
+            CTRL->>EC: Truy vấn mã giảm giá
+            activate EC
+            EC-->>CTRL: Thông tin mã giảm giá
+            deactivate EC
+            CTRL->>EC: Hoàn lại lượt sử dụng
+            activate EC
+            EC-->>CTRL: Xác nhận hoàn thành công
+            deactivate EC
+        end
+        loop Hoàn kho cho từng SP trong đơn
+            CTRL->>EP: Hoàn lại số lượng tồn kho
+            activate EP
+            EP-->>CTRL: Xác nhận đã hoàn kho
+            deactivate EP
+        end
+        CTRL->>EO: Cập nhật trạng thái thành Đã hủy
+        activate EO
+        EO-->>CTRL: Xác nhận cập nhật thành công
+        deactivate EO
+        CTRL-->>UI: Đã hủy đơn và hoàn tồn kho
+        UI-->>AD: Hiển thị thông báo đã hủy đơn
+    end
+    deactivate CTRL
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({startOnLoad:true, theme:'neutral', sequence:{mirrorActors:false, width:200}});</script>
+</body>
+</html>

@@ -1,13 +1,14 @@
 import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { FiBarChart2, FiBox, FiShoppingBag, FiLogOut } from 'react-icons/fi'
+import { FiBarChart2, FiBox, FiShoppingBag, FiUsers, FiLogOut } from 'react-icons/fi'
 import { api } from '../api/client'
 import './AdminLayout.css'
 
 const navItems = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: <FiBarChart2 /> },
   { to: '/admin/products', label: 'Sản phẩm', icon: <FiBox /> },
-  { to: '/admin/orders', label: 'Đơn hàng', icon: <FiShoppingBag /> }
+  { to: '/admin/orders', label: 'Đơn hàng', icon: <FiShoppingBag /> },
+  { to: '/admin/users', label: 'Tài khoản', icon: <FiUsers /> }
 ]
 
 const AdminLayout = ({ title, subtitle, children }) => {

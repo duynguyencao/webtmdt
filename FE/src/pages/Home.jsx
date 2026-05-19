@@ -89,12 +89,14 @@ const Home = () => {
               </Link>
             </div>
           </div>
-          <div className="hero-image">
-            <img
-              src={siteConfig.heroImage || 'https://cdn.shopvnb.com/uploads/images/tin_tuc/tu-dai-thien-vuong-top-4-huyen-thoai-o-the-gioi-la-ai-1.webp'}
-              alt="Cầu lông"
-            />
-          </div>
+          {siteConfig.heroImage && (
+            <div className="hero-image">
+              <img
+                src={siteConfig.heroImage}
+                alt="Banner"
+              />
+            </div>
+          )}
         </div>
       </section>
 

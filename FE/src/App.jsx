@@ -18,6 +18,7 @@ import AdminProducts from './pages/AdminProducts'
 import AdminOrders from './pages/AdminOrders'
 import AdminOrderDetail from './pages/AdminOrderDetail'
 import AdminDashboard from './pages/AdminDashboard'
+import AdminUsers from './pages/AdminUsers'
 import MyOrders from './pages/MyOrders'
 import MyOrderDetail from './pages/MyOrderDetail'
 import ComingSoon from './pages/ComingSoon'
@@ -66,6 +67,7 @@ function App() {
                   <Route path="/admin/products" element={<AdminProducts />} />
                   <Route path="/admin/orders" element={<AdminOrders />} />
                   <Route path="/admin/orders/:orderId" element={<AdminOrderDetail />} />
+                  <Route path="/admin/users" element={<AdminUsers />} />
                   <Route path="/login" element={<Navigate to="/admin/dashboard" replace />} />
                   <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
                   <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />

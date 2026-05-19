@@ -314,6 +314,53 @@ const AdminDashboard = () => {
     }
   }
 
+  const [heroUploading, setHeroUploading] = useState(false)
+
+  const handleHeroImageUpload = async (file) => {
+    if (!file) return
+    setHeroUploading(true)
+    try {
+      const res = await api.uploadProductImage(file)
+      const url = res.url
+      // Thêm vào thư viện banners
+      const bannersRes = await api.addBanner(url)
+      // Gán làm hero image hiện tại + lưu vào DB ngay
+      const newConfig = { ...siteConfig, heroImage: url, banners: bannersRes.banners || siteConfig.banners || [] }
+      setSiteConfig(newConfig)
+      await api.updateSiteConfig(newConfig)
+      showNotice('Đã upload ảnh và cập nhật banner trang chủ')
+    } catch (err) {
+      showNotice('Upload ảnh thất bại: ' + err.message, 'error')
+    } finally {
+      setHeroUploading(false)
+    }
+  }
+
+  const handleSelectBanner = async (url) => {
+    setSiteConfig((p) => ({ ...p, heroImage: url }))
+    try {
+      await api.updateSiteConfig({ ...siteConfig, heroImage: url })
+      showNotice('Đã chọn và lưu ảnh banner')
+    } catch (err) {
+      showNotice('Lưu thất bại: ' + err.message, 'error')
+    }
+  }
+
+  const handleRemoveBanner = async (url) => {
+    if (!window.confirm('Bạn có chắc muốn xóa ảnh này khỏi thư viện?')) return
+    try {
+      const res = await api.removeBanner(url)
+      setSiteConfig((p) => ({
+        ...p,
+        banners: res.banners || [],
+        heroImage: res.heroImage !== undefined ? res.heroImage : p.heroImage
+      }))
+      showNotice('Đã xóa ảnh khỏi thư viện')
+    } catch (err) {
+      showNotice('Xóa ảnh thất bại: ' + err.message, 'error')
+    }
+  }
+
   const saveSiteConfig = async (e) => {
     e.preventDefault()
     try {
@@ -545,13 +592,111 @@ const AdminDashboard = () => {
               </div>
 
               <div className="admin-form-group">
-                <label className="admin-field-label">URL banner hero</label>
+                <label className="admin-field-label">Ảnh banner hero</label>
                 <input
-                  placeholder="https://.../anh-hero.jpg"
-                  value={siteConfig.heroImage || ''}
-                  onChange={(e) => setSiteConfig((p) => ({ ...p, heroImage: e.target.value }))}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleHeroImageUpload(file)
+                    e.target.value = ''
+                  }}
+                  disabled={heroUploading}
                 />
-                <div className="admin-field-help">Nhập URL ảnh để thay banner hero. Để trống nếu không đổi.</div>
+                <div className="admin-field-help">
+                  {heroUploading ? 'Đang upload ảnh...' : 'Chọn ảnh từ máy tính. Ảnh sẽ được lưu vào thư viện để chọn lại sau.'}
+                </div>
+
+                {/* Ảnh đang dùng */}
+                {siteConfig.heroImage && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <div className="admin-field-help" style={{ marginBottom: '0.3rem', fontWeight: 600, color: '#16a34a' }}>
+                      ✓ Ảnh đang hiển thị trên trang chủ:
+                    </div>
+                    <img
+                      src={siteConfig.heroImage}
+                      alt="Hero preview"
+                      style={{
+                        maxWidth: '280px',
+                        maxHeight: '160px',
+                        objectFit: 'cover',
+                        borderRadius: '8px',
+                        border: '2px solid #16a34a'
+                      }}
+                    />
+                    <div style={{ marginTop: '0.35rem' }}>
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm"
+                        style={{ color: '#dc2626', borderColor: '#fca5a5' }}
+                        onClick={async () => {
+                          setSiteConfig((p) => ({ ...p, heroImage: '' }))
+                          try {
+                            await api.updateSiteConfig({ ...siteConfig, heroImage: '' })
+                            showNotice('Đã bỏ chọn ảnh banner')
+                          } catch {}
+                        }}
+                      >
+                        Bỏ chọn ảnh
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Thư viện ảnh đã upload */}
+                {Array.isArray(siteConfig.banners) && siteConfig.banners.length > 0 && (
+                  <div style={{ marginTop: '1rem' }}>
+                    <div className="admin-field-help" style={{ marginBottom: '0.5rem', fontWeight: 600, color: '#374151' }}>
+                      Thư viện ảnh ({siteConfig.banners.length}):
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      {siteConfig.banners.map((url, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            position: 'relative',
+                            border: siteConfig.heroImage === url ? '2px solid #16a34a' : '1px solid #e0e0e0',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => handleSelectBanner(url)}
+                          title="Click để chọn làm banner"
+                        >
+                          <img
+                            src={url}
+                            alt={`Banner ${idx + 1}`}
+                            style={{ width: '120px', height: '72px', objectFit: 'cover', display: 'block' }}
+                          />
+                          {siteConfig.heroImage === url && (
+                            <div style={{
+                              position: 'absolute', top: 2, left: 2,
+                              background: '#16a34a', color: '#fff',
+                              fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px'
+                            }}>
+                              Đang dùng
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleRemoveBanner(url) }}
+                            style={{
+                              position: 'absolute', top: 2, right: 2,
+                              background: 'rgba(220,38,38,0.85)', color: '#fff',
+                              border: 'none', borderRadius: '50%',
+                              width: '20px', height: '20px',
+                              fontSize: '12px', lineHeight: '18px',
+                              cursor: 'pointer', textAlign: 'center'
+                            }}
+                            title="Xóa ảnh khỏi thư viện"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="admin-form-group">

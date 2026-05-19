@@ -6,6 +6,9 @@
  *   - 'admin': quản trị viên (thêm/sửa/xóa sản phẩm, quản lý đơn hàng)
  *   - 'shipper': nhân viên giao hàng (nhận đơn, giao đơn)
  *
+ * Trạng thái tài khoản:
+ *   - isLocked: tài khoản bị khóa bởi admin → không thể đăng nhập.
+ *
  * Bảo mật:
  *   - Password được hash bằng bcrypt (salt rounds = 10) trước khi lưu.
  *   - toJSON tự động xóa password khi trả response (không bao giờ lộ ra FE).
@@ -47,7 +50,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['buyer', 'admin', 'shipper'],
     default: 'buyer'
-  }
+  },
+  // Tài khoản bị khóa bởi admin → chặn đăng nhập
+  isLocked: { type: Boolean, default: false }
 }, { timestamps: true })
 
 /**

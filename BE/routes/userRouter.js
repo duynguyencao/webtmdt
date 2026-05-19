@@ -10,6 +10,13 @@
  *   GET  /api/user/me           — Thông tin user hiện tại
  *   PUT  /api/user/me           — Cập nhật thông tin (tên, SĐT, địa chỉ)
  *
+ * Admin endpoints (cần JWT + role='admin'):
+ *   GET    /api/user/admin/list       — Danh sách tất cả tài khoản
+ *   GET    /api/user/admin/:id        — Chi tiết 1 tài khoản
+ *   PATCH  /api/user/admin/:id/lock   — Khóa tài khoản
+ *   PATCH  /api/user/admin/:id/unlock — Mở khóa tài khoản
+ *   DELETE /api/user/admin/:id        — Xóa tài khoản
+ *
  * Email verification:
  *   - Đăng ký → gửi email chứa link xác thực (token JWT 24h).
  *   - Chưa xác thực → không cho đăng nhập.
@@ -23,7 +30,8 @@ import jwt from 'jsonwebtoken'
 import nodemailer from 'nodemailer'
 import rateLimit from 'express-rate-limit'
 import User from '../models/User.js'
-import { createToken, verifyToken } from '../middleware/auth.js'
+import Order from '../models/Order.js'
+import { createToken, verifyToken, requireRole } from '../middleware/auth.js'
 import { validateBody } from '../validation/validate.js'
 import { loginSchema, registerSchema } from '../validation/schemas.js'
 
@@ -161,6 +169,7 @@ router.post('/login', authLimiter, validateBody(loginSchema), async (req, res) =
     const ok = await user.comparePassword(password)
     if (!ok) return res.status(401).json({ error: 'Email hoặc mật khẩu sai' })
     if (!user.emailVerified) return res.status(403).json({ error: 'Chưa xác thực email. Vui lòng kiểm tra email để xác thực.' })
+    if (user.isLocked) return res.status(403).json({ error: 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.' })
     const token = createToken(user)
     res.json({
       message: 'Đăng nhập thành công',
@@ -255,6 +264,113 @@ router.put('/me', verifyToken, async (req, res) => {
 
     await user.save()
     return res.json({ message: 'Đã cập nhật thông tin', user: user.toJSON() })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+// =========================
+// Admin: Quản lý tài khoản
+// =========================
+
+// GET /api/user/admin/list — danh sách tất cả tài khoản (admin)
+router.get('/admin/list', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 0)
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 0))
+    const usePaging = Boolean(req.query.page || req.query.limit)
+    const filter = {}
+
+    // Tìm kiếm theo tên hoặc email
+    if (req.query.search && String(req.query.search).trim()) {
+      const q = new RegExp(String(req.query.search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
+      filter.$or = [{ name: q }, { email: q }]
+    }
+
+    // Lọc theo role
+    if (req.query.role && ['buyer', 'admin', 'shipper'].includes(req.query.role)) {
+      filter.role = req.query.role
+    }
+
+    const baseQuery = User.find(filter).select('-password').sort({ createdAt: -1 })
+    const [list, total] = await Promise.all([
+      usePaging ? baseQuery.skip((page - 1) * limit).limit(limit).lean() : baseQuery.lean(),
+      usePaging ? User.countDocuments(filter) : Promise.resolve(0)
+    ])
+
+    const json = list.map((u) => {
+      const { _id, __v, password, ...rest } = u
+      return { id: _id.toString(), ...rest }
+    })
+
+    if (!usePaging) return res.json(json)
+    res.json({ items: json, page, limit, total })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/user/admin/:id — chi tiết 1 tài khoản (admin)
+router.get('/admin/:id', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password')
+    if (!user) return res.status(404).json({ error: 'Không tìm thấy tài khoản' })
+    res.json(user.toJSON())
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PATCH /api/user/admin/:id/lock — khóa tài khoản (admin)
+router.patch('/admin/:id/lock', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+    if (!user) return res.status(404).json({ error: 'Không tìm thấy tài khoản' })
+    if (user.role === 'admin') return res.status(400).json({ error: 'Không thể khóa tài khoản admin' })
+    if (user.isLocked) return res.status(400).json({ error: 'Tài khoản đã bị khóa trước đó' })
+
+    user.isLocked = true
+    await user.save()
+    res.json({ message: 'Đã khóa tài khoản', user: user.toJSON() })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PATCH /api/user/admin/:id/unlock — mở khóa tài khoản (admin)
+router.patch('/admin/:id/unlock', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+    if (!user) return res.status(404).json({ error: 'Không tìm thấy tài khoản' })
+    if (!user.isLocked) return res.status(400).json({ error: 'Tài khoản hiện không bị khóa' })
+
+    user.isLocked = false
+    await user.save()
+    res.json({ message: 'Đã mở khóa tài khoản', user: user.toJSON() })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// DELETE /api/user/admin/:id — xóa tài khoản (admin)
+router.delete('/admin/:id', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+    if (!user) return res.status(404).json({ error: 'Không tìm thấy tài khoản' })
+    if (user.role === 'admin') return res.status(400).json({ error: 'Không thể xóa tài khoản admin' })
+
+    // Kiểm tra đơn hàng đang xử lý (pending, confirmed, shipped)
+    const pendingOrders = await Order.countDocuments({
+      userId: user._id,
+      status: { $in: ['pending', 'confirmed', 'shipped'] }
+    })
+    if (pendingOrders > 0) {
+      return res.status(400).json({
+        error: `Không thể xóa: người dùng còn ${pendingOrders} đơn hàng đang xử lý`
+      })
+    }
+
+    await User.deleteOne({ _id: user._id })
+    res.json({ message: 'Đã xóa tài khoản' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
