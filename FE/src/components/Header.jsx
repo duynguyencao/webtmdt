@@ -1,13 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { FiSearch, FiShoppingCart, FiUser, FiMenu, FiX, FiLogOut, FiHome } from 'react-icons/fi'
 import { useCart } from '../context/CartContext'
 import { api } from '../api/client'
 import './Header.css'
-
-const CATEGORIES = [
-  { name: 'Vợt Cầu Lông', path: '/products?category=vot' }
-]
 
 const Header = ({ user: userProp }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -17,7 +13,6 @@ const Header = ({ user: userProp }) => {
   const [suggestLoading, setSuggestLoading] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [user, setUser] = useState(userProp ?? null)
-  const [availableCategoryValues, setAvailableCategoryValues] = useState([])
   const { getTotalItems } = useCart()
   const navigate = useNavigate()
   const location = useLocation()
@@ -44,27 +39,11 @@ const Header = ({ user: userProp }) => {
     }
   }, [userProp])
 
-  useEffect(() => {
-    api.getCategories()
-      .then((list) => {
-        setAvailableCategoryValues((list || []).map((item) => item.value).filter(Boolean))
-      })
-      .catch(() => { })
-  }, [])
-
   const handleLogout = () => {
     api.logout()
     setUser(null)
     navigate('/')
   }
-
-  const visibleCategories = useMemo(
-    () => CATEGORIES.filter((cat) => {
-      const categoryKey = cat.path.split('category=')[1]
-      return !categoryKey || availableCategoryValues.includes(categoryKey)
-    }),
-    [availableCategoryValues]
-  )
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -213,20 +192,7 @@ const Header = ({ user: userProp }) => {
           <ul className="nav-menu">
             <li><Link to="/" onClick={() => setIsMenuOpen(false)}>Trang chủ</Link></li>
 
-            <li className="nav-item-has-dropdown">
-              <Link to="/products" className="nav-link-root" onClick={() => setIsMenuOpen(false)}>
-                Sản phẩm
-              </Link>
-              <div className="mega-menu">
-                <div className="mega-menu-inner">
-                  {visibleCategories.map((cat, index) => (
-                    <Link key={index} to={cat.path} className="mega-menu-link" onClick={() => setIsMenuOpen(false)}>
-                      {cat.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </li>
+            <li><Link to="/products" onClick={() => setIsMenuOpen(false)}>Sản phẩm</Link></li>
 
             <li><Link to="/products?sale=true" onClick={() => setIsMenuOpen(false)}>Sale Off</Link></li>
             <li><Link to="/contact" onClick={() => setIsMenuOpen(false)}>Liên hệ</Link></li>
