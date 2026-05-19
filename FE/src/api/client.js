@@ -276,6 +276,20 @@ export const api = {
     return token ? { Authorization: `Bearer ${token}` } : {}
   },
 
+  async uploadProductImage(file) {
+    const url = `${API_BASE}/api/upload/image`
+    const formData = new FormData()
+    formData.append('image', file)
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { ...this._authHeaders() },
+      body: formData
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || 'Upload ảnh thất bại')
+    return data // { url: "https://..." }
+  },
+
   createProduct(body) {
     return request('/api/products', {
       method: 'POST',

@@ -22,6 +22,7 @@ import cartRouter from './routes/cartRouter.js'
 import { startAutoCancelPendingPayOSJob } from './jobs/autoCancelPendingPayOS.js'
 import reviewRouter from './routes/reviewRouter.js'
 import shippingRouter from './routes/shippingRouter.js'
+import uploadRouter from './routes/uploadRouter.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -101,6 +102,7 @@ app.use('/api/payos', payosRouter)
 app.use('/api/cart', cartRouter)
 app.use('/api/reviews', reviewRouter)
 app.use('/api/shipping', shippingRouter)
+app.use('/api/upload', uploadRouter)
 // Chatbot cần DB để lấy danh sách sản phẩm — nếu DB chưa kết nối thì báo lỗi rõ
 app.use('/api/chat', (req, res, next) => {
   if (!dbReady) {

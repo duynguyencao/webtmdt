@@ -2,6 +2,10 @@
 
 API REST cho website thương mại điện tử cầu lông. Dùng **MongoDB**, **Express**, **JWT** (đăng nhập). Cấu trúc: `db`, `models`, `routes`, `middleware`.
 
+## Docs dễ hiểu (khuyến nghị đọc)
+
+Xem docs chi tiết theo từng phần (dạng thư mục): `docs/README.md`.
+
 ## Cấu trúc thư mục
 
 ```

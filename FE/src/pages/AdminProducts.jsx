@@ -35,6 +35,9 @@ const AdminProducts = () => {
   const [previewProduct, setPreviewProduct] = useState(null)
   const [previewDescriptionExpanded, setPreviewDescriptionExpanded] = useState(false)
   const [zoomImageIndex, setZoomImageIndex] = useState(null)
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState('')
+  const [uploadProgress, setUploadProgress] = useState(false)
   const [searchText, setSearchText] = useState('')
   const [stockFilter, setStockFilter] = useState('all')
   const [sortKey, setSortKey] = useState('id_desc')
@@ -97,6 +100,8 @@ const AdminProducts = () => {
     setEditingId(null)
     setFormData(emptyForm())
     setSubmitError(null)
+    setImageFile(null)
+    setImagePreview('')
     setFormOpen(true)
   }
 
@@ -117,6 +122,8 @@ const AdminProducts = () => {
           : 0
       })
       setSubmitError(null)
+      setImageFile(null)
+      setImagePreview(full.image || (full.images && full.images[0]) || '')
       setFormOpen(true)
     } catch (err) {
       alert('Không thể tải thông tin sản phẩm: ' + err.message)
@@ -138,6 +145,8 @@ const AdminProducts = () => {
     setFormOpen(false)
     setEditingId(null)
     setFormData(emptyForm())
+    setImageFile(null)
+    setImagePreview('')
   }
 
   const closePreview = () => {
@@ -170,12 +179,34 @@ const AdminProducts = () => {
         return
       }
 
+      // --- Upload ảnh lên Supabase nếu có file mới ---
+      let imageUrl = formData.image?.trim() || ''
+      if (imageFile) {
+        setUploadProgress(true)
+        try {
+          const uploadRes = await api.uploadProductImage(imageFile)
+          imageUrl = uploadRes.url
+        } catch (uploadErr) {
+          setSubmitError('Upload ảnh thất bại: ' + uploadErr.message)
+          setSubmitLoading(false)
+          setUploadProgress(false)
+          return
+        }
+        setUploadProgress(false)
+      }
+
+      if (!imageUrl) {
+        setSubmitError('Vui lòng chọn ảnh sản phẩm')
+        setSubmitLoading(false)
+        return
+      }
+
       const body = {
         name: formData.name.trim(),
         brand: formData.brand.trim(),
         category: formData.category,
         price: finalPrice,
-        image: formData.image.trim() || undefined,
+        image: imageUrl,
         description: formData.description.trim(),
         stock: Number(formData.stock) || 0,
         sale: hasDiscount
@@ -430,8 +461,38 @@ const AdminProducts = () => {
                   </div>
                 </div>
                 <div className="form-group">
-                  <label>URL ảnh *</label>
-                  <input name="image" value={formData.image} onChange={handleChange} required placeholder="https://..." />
+                  <label>Ảnh sản phẩm *</label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setImageFile(file)
+                        setImagePreview(URL.createObjectURL(file))
+                      }
+                    }}
+                  />
+                  {imagePreview && (
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        style={{
+                          maxWidth: '180px',
+                          maxHeight: '180px',
+                          objectFit: 'contain',
+                          borderRadius: '8px',
+                          border: '1px solid #e0e0e0'
+                        }}
+                      />
+                    </div>
+                  )}
+                  {editingId && !imageFile && formData.image && (
+                    <p style={{ fontSize: '0.82rem', color: '#888', marginTop: '0.25rem' }}>
+                      Ảnh hiện tại đang dùng. Chọn file mới để thay đổi.
+                    </p>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Mô tả *</label>
@@ -441,8 +502,8 @@ const AdminProducts = () => {
                   <button type="button" className="btn btn-outline" onClick={closeForm}>
                     Hủy
                   </button>
-                  <button type="submit" className="btn btn-primary" disabled={submitLoading}>
-                    {submitLoading ? 'Đang lưu...' : editingId ? 'Cập nhật' : 'Thêm'}
+                  <button type="submit" className="btn btn-primary" disabled={submitLoading || uploadProgress}>
+                    {uploadProgress ? 'Đang upload ảnh...' : submitLoading ? 'Đang lưu...' : editingId ? 'Cập nhật' : 'Thêm'}
                   </button>
                 </div>
               </form>
