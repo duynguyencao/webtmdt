@@ -1,3 +1,18 @@
+/**
+ * seed/index.js — Script seed dữ liệu mẫu cho development.
+ *
+ * Chạy: npm run seed (hoặc node seed/index.js)
+ *
+ * Luồng:
+ *   1. Xóa toàn bộ Product → import lại từ productsSeed.
+ *   2. Tạo user mẫu (admin, buyer) nếu chưa có.
+ *   3. Xóa toàn bộ Order → tạo 12 đơn hàng mẫu ở các trạng thái khác nhau.
+ *   4. Xóa toàn bộ Review → tạo review mẫu + tính lại rating cho Product.
+ *
+ * ⚠ CẢNH BÁO: sẽ xóa toàn bộ dữ liệu hiện tại (Product, Order, Review).
+ *   Chỉ dùng cho development/testing, KHÔNG chạy trên production.
+ */
+
 import 'dotenv/config'
 import { connectDB } from '../db/dbConnect.js'
 import Product from '../models/Product.js'

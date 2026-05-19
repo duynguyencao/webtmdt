@@ -1,3 +1,15 @@
+/**
+ * scripts/sync_indexes.js — Đồng bộ indexes MongoDB theo schema hiện tại.
+ *
+ * Chạy khi cần:
+ *   node scripts/sync_indexes.js
+ *
+ * Mục đích:
+ *   - Tạo indexes mới được định nghĩa trong schema nhưng chưa có trên DB.
+ *   - Xóa indexes không còn trong schema (nếu có).
+ *   - Nên chạy sau khi thay đổi index trong model files.
+ */
+
 import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 import path from 'path'

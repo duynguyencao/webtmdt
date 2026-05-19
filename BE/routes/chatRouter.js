@@ -1,3 +1,19 @@
+/**
+ * routes/chatRouter.js — API chatbot AI (Google Gemini).
+ *
+ * POST /api/chat — Công khai (không cần JWT).
+ *   Body: { message: string, history?: [{role, text}] }
+ *   Response: { reply: string }
+ *
+ * Luồng:
+ *   1. Validate message (max 1000 ký tự).
+ *   2. Lấy product context từ cache (danh sách sản phẩm shop).
+ *   3. Gọi Gemini API với system instruction + product context + history.
+ *   4. Trả reply cho FE.
+ *
+ * Lưu ý: chatbot cần DB kết nối (lấy sản phẩm). index.js chặn 503 nếu DB chưa sẵn sàng.
+ */
+
 import { Router } from 'express'
 import { getProductContextCached } from '../services/productContext.js'
 import { generateChatReply } from '../services/geminiService.js'

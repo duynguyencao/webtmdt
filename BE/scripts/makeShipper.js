@@ -1,3 +1,16 @@
+/**
+ * scripts/makeShipper.js — Tạo hoặc nâng cấp user thành shipper.
+ *
+ * Cách dùng:
+ *   node scripts/makeShipper.js <email> [password] [name]
+ *
+ * Ví dụ:
+ *   node scripts/makeShipper.js shipper@shop.vn 123456 "Nguyễn Văn A"
+ *   → Tạo user shipper mới hoặc đổi role thành shipper (nếu đã có).
+ *
+ * Yêu cầu: MONGODB_URI trong .env.
+ */
+
 import 'dotenv/config'
 import mongoose from 'mongoose'
 import User from '../models/User.js'

@@ -1,3 +1,11 @@
+/**
+ * seed/ordersSeed.js — Dữ liệu đơn hàng mẫu cho seed.
+ *
+ * Tạo 12 đơn hàng ở các trạng thái khác nhau (pending, confirmed, shipped, delivered, cancelled).
+ * Mỗi đơn có items snapshot từ danh sách sản phẩm thật trong DB.
+ * Dùng cho testing luồng đơn hàng trên FE/BE.
+ */
+
 const customer = {
   name: 'Buyer',
   phone: '0900000001',

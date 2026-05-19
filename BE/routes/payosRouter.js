@@ -1,3 +1,20 @@
+/**
+ * routes/payosRouter.js — Webhook nhận callback thanh toán từ PayOS.
+ *
+ * POST /api/payos/webhook
+ *   - PayOS gọi endpoint này khi khách thanh toán thành công.
+ *   - Verify chữ ký checksum (payOS.webhooks.verify) để chống giả mạo.
+ *   - Map orderCode → orderId → cập nhật paymentStatus='paid', status='confirmed'.
+ *   - Ghi log vào PayOSPaymentEvent (đối soát).
+ *   - Consume coupon nếu chưa.
+ *
+ * Bảo vệ:
+ *   - Validate checksum signature.
+ *   - Validate amount (so khớp với tổng đơn).
+ *   - Idempotent: nếu đã paid rồi thì không xử lý lại.
+ *   - Đơn đã cancelled → log nhưng không làm gì.
+ */
+
 import { Router } from 'express'
 import Order from '../models/Order.js'
 import Coupon from '../models/Coupon.js'

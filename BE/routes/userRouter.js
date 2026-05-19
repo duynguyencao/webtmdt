@@ -1,3 +1,23 @@
+/**
+ * routes/userRouter.js — API xác thực và quản lý tài khoản.
+ *
+ * Endpoints công khai:
+ *   POST /api/user/register     — Đăng ký (gửi email xác thực)
+ *   POST /api/user/login        — Đăng nhập (trả JWT token, 7 ngày)
+ *   GET  /api/user/verify-email — Xác thực email qua token trong link
+ *
+ * Endpoints cần JWT:
+ *   GET  /api/user/me           — Thông tin user hiện tại
+ *   PUT  /api/user/me           — Cập nhật thông tin (tên, SĐT, địa chỉ)
+ *
+ * Email verification:
+ *   - Đăng ký → gửi email chứa link xác thực (token JWT 24h).
+ *   - Chưa xác thực → không cho đăng nhập.
+ *   - Email đã tồn tại nhưng chưa xác thực → gửi lại link.
+ *
+ * Rate limit: 10 request/phút cho register và login (chống brute force).
+ */
+
 import { Router } from 'express'
 import jwt from 'jsonwebtoken'
 import nodemailer from 'nodemailer'

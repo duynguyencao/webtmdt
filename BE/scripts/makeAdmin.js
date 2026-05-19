@@ -1,3 +1,16 @@
+/**
+ * scripts/makeAdmin.js — Tạo hoặc nâng cấp user thành admin.
+ *
+ * Cách dùng:
+ *   node scripts/makeAdmin.js <email> [password] [name]
+ *
+ * Ví dụ:
+ *   node scripts/makeAdmin.js admin@shop.vn 123456 "Quản Trị"
+ *   → Tạo user admin mới (nếu chưa có) hoặc nâng role thành admin (nếu đã có).
+ *
+ * Yêu cầu: MONGODB_URI trong .env (hoặc đang chạy MongoDB local).
+ */
+
 import 'dotenv/config'
 import mongoose from 'mongoose'
 import User from '../models/User.js'

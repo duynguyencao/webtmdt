@@ -1,3 +1,16 @@
+/**
+ * routes/cartRouter.js — API giỏ hàng (server-side sync).
+ *
+ * Endpoints (cần JWT):
+ *   GET    /api/cart                    — Lấy giỏ hàng (expand thông tin sản phẩm)
+ *   PUT    /api/cart                    — Thay thế toàn bộ giỏ hàng
+ *   POST   /api/cart/items              — Thêm/cập nhật 1 item
+ *   DELETE /api/cart/items/:productId/:sku — Xóa 1 item
+ *
+ * expandCartItems(): join thông tin Product (tên, giá, ảnh, stock) vào cart items.
+ * FE cũng lưu giỏ hàng trong localStorage để hiển thị nhanh (offline-first).
+ */
+
 import { Router } from 'express'
 import Cart from '../models/Cart.js'
 import Product from '../models/Product.js'

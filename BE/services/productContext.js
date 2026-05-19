@@ -1,3 +1,20 @@
+/**
+ * services/productContext.js — Tạo ngữ cảnh sản phẩm cho chatbot Gemini.
+ *
+ * Mục đích:
+ *   - Query danh sách sản phẩm từ MongoDB.
+ *   - Format thành text dạng "[id:1] Tên | Brand | Category | Giá" để gắn vào prompt.
+ *   - Gemini dùng danh sách này để gợi ý, so sánh sản phẩm thật của shop.
+ *
+ * Cache:
+ *   - In-memory cache với TTL 5 phút (tránh gọi DB mỗi tin nhắn chatbot).
+ *   - getProductContextCached() → trả cache nếu còn hạn, gọi DB nếu hết hạn.
+ *
+ * Giới hạn:
+ *   - Tối đa 150 sản phẩm trong prompt (tránh vượt token Gemini).
+ *   - Mô tả sản phẩm cắt tối đa 200 ký tự.
+ */
+
 import Product from '../models/Product.js'
 
 /** Giới hạn số sản phẩm đưa vào prompt để tránh vượt token Gemini */

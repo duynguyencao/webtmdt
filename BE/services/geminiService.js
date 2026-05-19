@@ -1,3 +1,21 @@
+/**
+ * services/geminiService.js — Gọi Google Gemini AI để chatbot tư vấn sản phẩm.
+ *
+ * Cách hoạt động:
+ *   1. Đọc GEMINI_API_KEY từ file .env (đọc trực tiếp file, không qua process.env,
+ *      để tránh cache sai khi hot-reload).
+ *   2. Xây dựng multi-turn conversation (history) để bot nhớ ngữ cảnh.
+ *   3. Gắn danh sách sản phẩm từ DB vào prompt (productContext) để bot biết shop bán gì.
+ *   4. Gọi Gemini SDK → trả về text reply.
+ *
+ * Model: gemini-2.5-flash (nhanh, phù hợp chatbot realtime).
+ *
+ * Xử lý lỗi:
+ *   - API key sai → báo lỗi rõ ràng kèm link lấy key mới.
+ *   - Hết quota → thông báo thử lại sau.
+ *   - Nội dung bị chặn (safety filter) → báo người dùng hỏi khác.
+ */
+
 import path from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'fs'

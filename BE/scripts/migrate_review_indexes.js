@@ -1,3 +1,14 @@
+/**
+ * scripts/migrate_review_indexes.js — Migration cập nhật unique index cho reviews.
+ *
+ * Chạy 1 lần khi cần:
+ *   node scripts/migrate_review_indexes.js
+ *
+ * Mục đích:
+ *   - Xóa index cũ (productId + userId) — cho phép user review nhiều lần trên nhiều đơn.
+ *   - Tạo index mới (productId + userId + orderId) — unique per order per product.
+ */
+
 import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 import path from 'path'

@@ -1,3 +1,16 @@
+/**
+ * routes/couponRouter.js — API mã giảm giá.
+ *
+ * Endpoint công khai:
+ *   GET /api/coupons/validate?code=...&orderTotal=... — Kiểm tra mã và tính giảm giá
+ *
+ * Endpoints admin:
+ *   GET    /api/coupons         — Danh sách tất cả coupon
+ *   POST   /api/coupons         — Tạo coupon mới
+ *   PUT    /api/coupons/:code   — Sửa coupon
+ *   DELETE /api/coupons/:code   — Xóa coupon
+ */
+
 import { Router } from 'express'
 import Coupon from '../models/Coupon.js'
 import { verifyToken, requireRole } from '../middleware/auth.js'

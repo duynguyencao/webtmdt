@@ -1,3 +1,11 @@
+/**
+ * seed/reviewsSeed.js — Dữ liệu đánh giá mẫu cho seed.
+ *
+ * 8 review mẫu cho các sản phẩm trong đơn hàng đã giao (delivered).
+ * Rating 3-5 sao, comment tiếng Việt không dấu (mẫu test).
+ * Sau khi seed, index.js sẽ tính lại trung bình rating cho Product.
+ */
+
 const daysAgo = (days) => {
   const date = new Date()
   date.setDate(date.getDate() - days)

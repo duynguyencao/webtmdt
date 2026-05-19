@@ -1,3 +1,22 @@
+/**
+ * routes/productRouter.js — API quản lý sản phẩm (vợt cầu lông).
+ *
+ * Endpoints công khai:
+ *   GET    /api/products              — Danh sách sản phẩm (tìm kiếm, lọc, phân trang)
+ *   GET    /api/products/suggestions  — Gợi ý tên sản phẩm (autocomplete search)
+ *   GET    /api/products/:id          — Chi tiết 1 sản phẩm
+ *
+ * Endpoints admin (cần JWT + role='admin'):
+ *   POST   /api/products              — Thêm sản phẩm mới
+ *   PUT    /api/products/:id           — Sửa sản phẩm
+ *   DELETE /api/products/:id           — Xóa mềm sản phẩm (isDeleted=true)
+ *
+ * Đặc biệt:
+ *   - normalizeProductBody(): chuẩn hóa body (tính giảm giá, ép category='vot').
+ *   - Image URL: từ Supabase Storage hoặc link bên ngoài.
+ *   - Soft delete: sản phẩm bị xóa vẫn nằm trong DB (giữ lịch sử đơn hàng).
+ */
+
 import { Router } from 'express'
 import Product from '../models/Product.js'
 import Order from '../models/Order.js'

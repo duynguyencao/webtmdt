@@ -1,3 +1,12 @@
+/**
+ * routes/siteConfigRouter.js — API cấu hình giao diện trang chủ.
+ *
+ * GET /api/site-config     — Công khai. Lấy config hiện tại (hero, sale title, grid cols).
+ * PUT /api/site-config     — Admin. Cập nhật config (upsert nếu chưa có).
+ *
+ * Config chỉ có 1 document (key='home'). Admin thay đổi qua trang quản trị.
+ */
+
 import { Router } from 'express'
 import SiteConfig from '../models/SiteConfig.js'
 import { verifyToken, requireRole } from '../middleware/auth.js'

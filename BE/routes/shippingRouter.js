@@ -1,3 +1,12 @@
+/**
+ * routes/shippingRouter.js — API tính phí vận chuyển.
+ *
+ * GET /api/shipping/quote?city=&district=&ward=&itemsCount= — Công khai.
+ *
+ * Phase 1: trả fee=0 (miễn phí ship, tính manual).
+ * Có thể mở rộng sang GHN/GHTK API trong tương lai.
+ */
+
 import { Router } from 'express'
 
 const router = Router()

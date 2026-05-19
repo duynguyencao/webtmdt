@@ -1,3 +1,15 @@
+/**
+ * scripts/migrate_remove_variants_addon.js — Migration xóa fields cũ.
+ *
+ * Chạy 1 lần khi cần:
+ *   node scripts/migrate_remove_variants_addon.js
+ *
+ * Mục đích:
+ *   - Xóa các field legacy (variants, stringingAddOn, inStock) khỏi Product.
+ *   - Đảm bảo stock >= 0 cho tất cả sản phẩm.
+ *   - Xóa sku/addOn khỏi items trong Cart và Order.
+ */
+
 import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 import path from 'path'

@@ -53,6 +53,9 @@ const MyOrders = () => {
   })
   const [rangeEnd, setRangeEnd] = useState(() => endOfDay(new Date()))
 
+  const PAYOS_PENDING_KEY = 'payos_pending_v1'
+  const CART_STORAGE_KEY = 'cart'
+
   const loadOrders = () => api.getMyOrders().then(setOrders)
 
   useEffect(() => {
@@ -60,7 +63,32 @@ const MyOrders = () => {
       navigate('/login?redirect=/orders', { replace: true })
       return
     }
-    loadOrders()
+
+    // Auto-cancel đơn PayOS pending khi user quay lại (đóng tab / bấm back thay vì bấm "Hủy" trên PayOS)
+    const autoCancelPendingPayOS = async () => {
+      try {
+        const raw = localStorage.getItem(PAYOS_PENDING_KEY)
+        if (!raw) return
+        const parsed = JSON.parse(raw)
+        const pendingOrderId = parsed?.orderId
+        if (!pendingOrderId) return
+
+        // Gọi API hủy + xóa đơn
+        await api.cancelPayOSAndDeleteOrder(pendingOrderId)
+
+        // Restore giỏ hàng nếu có snapshot
+        if (Array.isArray(parsed?.cart)) {
+          localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(parsed.cart))
+        }
+      } catch {
+        // Đơn có thể đã thanh toán thành công hoặc đã bị hủy trước đó — bỏ qua lỗi
+      } finally {
+        localStorage.removeItem(PAYOS_PENDING_KEY)
+      }
+    }
+
+    autoCancelPendingPayOS()
+      .then(() => loadOrders())
       .catch((err) => setError(err.message || 'Không tải được đơn hàng'))
       .finally(() => setLoading(false))
   }, [navigate])

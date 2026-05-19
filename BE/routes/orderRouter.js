@@ -1,3 +1,33 @@
+/**
+ * routes/orderRouter.js — API quản lý đơn hàng.
+ *
+ * Endpoints:
+ *   POST   /api/orders                         — Đặt hàng (buyer, cần JWT)
+ *   GET    /api/orders/me                      — Đơn hàng của tôi (buyer)
+ *   GET    /api/orders/:orderId                — Chi tiết đơn (buyer xem đơn mình, admin xem mọi đơn)
+ *   GET    /api/orders                         — Tất cả đơn (admin)
+ *   PATCH  /api/orders/:orderId/confirm        — Xác nhận đơn COD (admin)
+ *   PATCH  /api/orders/:orderId/cancel         — Hủy đơn (admin)
+ *   PATCH  /api/orders/:orderId/cancel-by-buyer — Buyer tự hủy đơn pending
+ *   PATCH  /api/orders/:orderId/cancel-payos-and-delete — Hủy đơn PayOS chưa thanh toán + xóa
+ *
+ * Shipper endpoints:
+ *   GET    /api/orders/shipper/available        — Đơn chờ shipper nhận
+ *   GET    /api/orders/shipper/my-tasks         — Đơn shipper đang giao
+ *   PATCH  /api/orders/:orderId/pickup          — Nhận đơn giao
+ *   PATCH  /api/orders/:orderId/deliver         — Giao thành công
+ *   PATCH  /api/orders/:orderId/fail            — Giao thất bại (return/cancel)
+ *
+ * Luồng tạo đơn (POST /):
+ *   1. Validate body (Zod schema).
+ *   2. Sinh orderId (ORD000001) bằng OrderCounter (race-condition safe).
+ *   3. Kiểm tra tồn kho + trừ stock atomic ($inc) trong transaction.
+ *   4. Áp dụng coupon (nếu có).
+ *   5. Tạo Order document.
+ *   6. Nếu PayOS → tạo payment link → redirect FE.
+ *   7. Nếu COD → trả 201 ngay.
+ */
+
 import { Router } from 'express'
 import Order from '../models/Order.js'
 import Product from '../models/Product.js'

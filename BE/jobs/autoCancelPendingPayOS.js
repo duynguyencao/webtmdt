@@ -1,3 +1,23 @@
+/**
+ * jobs/autoCancelPendingPayOS.js — Cron job tự động hủy đơn PayOS quá hạn.
+ *
+ * Kịch bản:
+ *   Khách chọn thanh toán PayOS nhưng không hoàn tất (đóng tab, quên, v.v.)
+ *   → Đơn hàng mắc kẹt ở status='pending', paymentStatus='pending_payment'.
+ *   → Cron job này chạy mỗi 5 phút, quét đơn PayOS pending quá 15 phút.
+ *
+ * Luồng xử lý cho mỗi đơn quá hạn:
+ *   1. Kiểm tra trạng thái thật trên PayOS (tránh hủy nhầm nếu webhook bị lỗi).
+ *      - Nếu đã thanh toán → chuyển status='confirmed', paymentStatus='paid'.
+ *      - Nếu chưa thanh toán → tiếp tục hủy.
+ *   2. Hoàn kho (Product.stock += quantity).
+ *   3. Hoàn coupon nếu đã consume.
+ *   4. Cancel payment request trên PayOS (tránh late-payment).
+ *   5. Đổi status='cancelled'.
+ *
+ * Giới hạn: mỗi lần quét tối đa 50 đơn (tránh quá tải).
+ */
+
 import cron from 'node-cron'
 import Order from '../models/Order.js'
 import Product from '../models/Product.js'

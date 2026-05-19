@@ -1,3 +1,11 @@
+/**
+ * routes/categoryRouter.js — API danh mục sản phẩm.
+ *
+ * GET /api/categories — Công khai.
+ * Hiện chỉ có 1 danh mục cố định: "Vợt Cầu Lông" (category='vot').
+ * Trả về tên, path, ảnh đại diện, và số lượng sản phẩm trong danh mục.
+ */
+
 import { Router } from 'express'
 import Product from '../models/Product.js'
 

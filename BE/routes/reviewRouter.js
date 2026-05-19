@@ -1,3 +1,18 @@
+/**
+ * routes/reviewRouter.js — API đánh giá sản phẩm.
+ *
+ * Endpoints công khai:
+ *   GET /api/reviews/product/:productId — Danh sách đánh giá của sản phẩm
+ *
+ * Endpoints cần JWT:
+ *   POST   /api/reviews      — Tạo đánh giá (chỉ khi đã delivered, 1 lần/đơn/sản phẩm)
+ *   PUT    /api/reviews/:id   — Sửa đánh giá (chỉ chủ review)
+ *   DELETE /api/reviews/:id   — Xóa đánh giá (chỉ chủ review)
+ *
+ * Khi thêm/sửa/xóa review → recomputeProductRating():
+ *   tính lại trung bình rating và tổng reviews cho Product.
+ */
+
 import { Router } from 'express'
 import Review from '../models/Review.js'
 import Order from '../models/Order.js'
