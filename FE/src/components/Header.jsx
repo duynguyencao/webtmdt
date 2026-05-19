@@ -229,7 +229,6 @@ const Header = ({ user: userProp }) => {
             </li>
 
             <li><Link to="/products?sale=true" onClick={() => setIsMenuOpen(false)}>Sale Off</Link></li>
-            <li><Link to="/news" onClick={() => setIsMenuOpen(false)}>Tin tức</Link></li>
             <li><Link to="/contact" onClick={() => setIsMenuOpen(false)}>Liên hệ</Link></li>
           </ul>
         </div>

@@ -28,18 +28,6 @@ const Footer = () => {
           </div>
 
           <div className="footer-section">
-            <h3 className="footer-title">Danh mục</h3>
-            <ul className="footer-links">
-              <li><Link to="/products?category=vot">Vợt Cầu Lông</Link></li>
-              <li><Link to="/products?category=giay">Giày Cầu Lông</Link></li>
-              <li><Link to="/products?category=ao">Áo Cầu Lông</Link></li>
-              <li><Link to="/products?category=quan">Quần Cầu Lông</Link></li>
-              <li><Link to="/products?category=tui">Túi Vợt</Link></li>
-              <li><Link to="/products?category=phu-kien">Phụ Kiện</Link></li>
-            </ul>
-          </div>
-
-          <div className="footer-section">
             <h3 className="footer-title">Hỗ trợ</h3>
             <ul className="footer-links">
               <li><Link to="/guide">Hướng dẫn mua hàng</Link></li>

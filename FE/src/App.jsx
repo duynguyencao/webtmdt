@@ -25,6 +25,7 @@ import Contact from './pages/Contact'
 import Account from './pages/Account'
 import Shipper from './pages/Shipper'
 import PayOSCancel from './pages/PayOSCancel'
+import SupportPage from './pages/SupportPage'
 import { CartProvider } from './context/CartContext'
 
 function App() {
@@ -93,7 +94,11 @@ function App() {
                   <Route path="/payos/cancel" element={<PayOSCancel />} />
                   <Route path="/account" element={<Account />} />
                   <Route path="/track-order" element={<ComingSoon />} />
-                  <Route path="/news" element={<ComingSoon />} />
+                  <Route path="/guide" element={<SupportPage type="guide" />} />
+                  <Route path="/payment" element={<SupportPage type="payment" />} />
+                  <Route path="/warranty" element={<SupportPage type="warranty" />} />
+                  <Route path="/return" element={<SupportPage type="return" />} />
+                  <Route path="/shipping" element={<SupportPage type="shipping" />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/admin/*" element={<Navigate to="/" replace />} />
                     </>
