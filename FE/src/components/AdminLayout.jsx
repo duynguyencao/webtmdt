@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { FiBarChart2, FiBox, FiShoppingBag, FiUsers, FiLogOut } from 'react-icons/fi'
 import { api } from '../api/client'
 import './AdminLayout.css'
+import './MobileBottomBar.css'
 
 const navItems = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: <FiBarChart2 /> },
@@ -23,7 +24,7 @@ const AdminLayout = ({ title, subtitle, children }) => {
 
   return (
     <div className="admin-shell">
-      <aside className="admin-sidebar">
+      <aside className="admin-sidebar mobile-bottom-bar mobile-bottom-bar-admin">
         <Link to="/admin/dashboard" className="admin-brand">
           <span>ShopTD</span>
           <small>Admin Panel</small>
@@ -32,14 +33,15 @@ const AdminLayout = ({ title, subtitle, children }) => {
           {navItems.map((item) => {
             const active = location.pathname.startsWith(item.to)
             return (
-              <Link key={item.to} to={item.to} className={`admin-nav-item ${active ? 'active' : ''}`}>
+              <Link key={item.to} to={item.to} className={`admin-nav-item mobile-bottom-bar-item ${active ? 'active' : ''}`}>
                 {item.icon}
                 <span>{item.label}</span>
               </Link>
             )
           })}
-          <button type="button" className="admin-logout-btn" onClick={handleLogout}>
-            <FiLogOut /> Đăng xuất
+          <button type="button" className="admin-logout-btn mobile-bottom-bar-item" onClick={handleLogout}>
+            <FiLogOut />
+            <span>Đăng xuất</span>
           </button>
         </nav>
       </aside>

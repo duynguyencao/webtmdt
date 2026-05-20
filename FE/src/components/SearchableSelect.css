@@ -24,12 +24,12 @@
 }
 
 .ss-control:hover {
-  border-color: rgba(230, 57, 70, 0.45);
+  border-color: var(--primary-shadow);
 }
 
 .ss-open {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.1);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .ss-input {

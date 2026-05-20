@@ -483,7 +483,7 @@ const AdminDashboard = () => {
                     formatter={(v) => formatPrice(v)}
                     labelFormatter={(l) => l}
                   />
-                  <Line type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="revenue" stroke="var(--primary-color)" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -502,7 +502,7 @@ const AdminDashboard = () => {
                   <XAxis type="number" tick={{ fontSize: 12 }} />
                   <YAxis dataKey="label" type="category" width={140} tick={{ fontSize: 12 }} />
                   <Tooltip formatter={(v) => v} />
-                  <Bar dataKey="count" fill="#0ea5e9" barSize={24} />
+                  <Bar dataKey="count" fill="var(--primary-light)" barSize={24} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -529,7 +529,7 @@ const AdminDashboard = () => {
                         ? '—'
                         : `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}%`
                       return (
-                        <div style={{ background: '#0f172a', color: '#fff', padding: 12, borderRadius: 10 }}>
+                        <div style={{ background: '#111827', color: '#fff', padding: 12, borderRadius: 10 }}>
                           <div style={{ fontWeight: 700, marginBottom: 6 }}>{p.label}</div>
                           <div>Số lượng: <strong>{p.units}</strong></div>
                           <div>So với kỳ trước: <strong>{deltaText}</strong></div>
@@ -537,7 +537,7 @@ const AdminDashboard = () => {
                       )
                     }}
                   />
-                  <Bar dataKey="units" fill="#3b82f6" barSize={24} />
+                  <Bar dataKey="units" fill="var(--primary-light)" barSize={24} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

@@ -4,6 +4,7 @@ import { FiSearch, FiShoppingCart, FiUser, FiMenu, FiX, FiLogOut, FiHome } from 
 import { useCart } from '../context/CartContext'
 import { api } from '../api/client'
 import './Header.css'
+import './MobileBottomBar.css'
 
 const Header = ({ user: userProp }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -127,13 +128,13 @@ const Header = ({ user: userProp }) => {
               )}
             </form>
 
-            <div className="header-icons">
-              <Link to="/" className={`mobile-only-icon ${location.pathname === '/' ? 'active' : ''}`} title="Trang chủ">
+            <div className="header-icons mobile-bottom-bar mobile-bottom-bar-user">
+              <Link to="/" className={`mobile-only-icon mobile-bottom-bar-item ${location.pathname === '/' ? 'active' : ''}`} title="Trang chủ">
                 <FiHome />
                 <span className="icon-label">Trang chủ</span>
               </Link>
 
-              <Link to="/cart" className={`cart-icon ${location.pathname === '/cart' ? 'active' : ''}`}>
+              <Link to="/cart" className={`cart-icon mobile-bottom-bar-item ${location.pathname === '/cart' ? 'active' : ''}`}>
                 <FiShoppingCart />
                 {getTotalItems() > 0 && (
                   <span className="cart-badge">{getTotalItems()}</span>
@@ -141,11 +142,14 @@ const Header = ({ user: userProp }) => {
                 <span className="icon-label">Giỏ hàng</span>
               </Link>
 
-              <span className="chatbot-slot" aria-hidden="true" />
+              <span className="chatbot-slot mobile-bottom-bar-item" aria-hidden="true" />
 
-              <div className="user-menu-container" onClick={(e) => e.stopPropagation()}>
+              <div
+                className={`user-menu-container mobile-bottom-bar-item ${['/account', '/orders', '/login', '/register'].some((path) => location.pathname.startsWith(path)) ? 'active' : ''}`}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button
-                  className={`user-icon ${['/account', '/orders', '/login', '/register'].some((path) => location.pathname.startsWith(path)) ? 'active' : ''}`}
+                  className="user-icon"
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   title={user ? user.name : 'Tài khoản'}
                 >
@@ -176,7 +180,7 @@ const Header = ({ user: userProp }) => {
               </div>
 
               <button
-                className={`menu-toggle ${isMenuOpen ? 'active' : ''}`}
+                className={`menu-toggle mobile-bottom-bar-item ${isMenuOpen ? 'active' : ''}`}
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
                 {isMenuOpen ? <FiX /> : <FiMenu />}

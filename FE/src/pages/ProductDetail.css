@@ -8,13 +8,13 @@
   display: flex;
   gap: 0.5rem;
   align-items: center;
-  color: #64748b;
+  color: #6B7280;
   font-weight: 600;
   margin: 0 0 1.25rem 0;
 }
 
 .breadcrumbs a {
-  color: #0f172a;
+  color: #111827;
 }
 
 .breadcrumb-sep {
@@ -143,7 +143,7 @@
 
 .thumbnail.active {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.2);
+  box-shadow: 0 0 0 3px var(--primary-shadow);
 }
 
 .thumbnail img {
@@ -308,7 +308,7 @@
   border-radius: 999px;
   transform: translateY(-50%);
   background: rgba(255, 255, 255, 0.94);
-  color: #0f172a;
+  color: #111827;
   font-size: 2rem;
   line-height: 1;
 }
@@ -416,7 +416,7 @@
 }
 
 .stock-info.out-of-stock {
-  color: #e53935;
+  color: #DC2626;
   font-weight: 600;
 }
 
@@ -446,7 +446,7 @@
 .btn-primary:hover:not(:disabled) {
   background: var(--primary-dark);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(230, 57, 70, 0.3);
+  box-shadow: 0 4px 12px var(--primary-shadow);
 }
 
 .btn-primary.added {
@@ -517,7 +517,7 @@
     font-size: 1.5rem;
   }
 
-  .current-price {
+  .product-detail-page .current-price {
     font-size: 2rem;
   }
 
@@ -725,7 +725,7 @@
 .reviews-form textarea:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.1);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .reviews-form-footer {
@@ -782,7 +782,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(230, 57, 70, 0.2);
+  border: 1px solid var(--primary-shadow);
 }
 
 .review-top {

@@ -83,11 +83,12 @@
   font-weight: 600;
   color: var(--text-dark);
   margin: 0;
+  line-height: 1.35;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-height: 2.5rem;
+  min-height: calc(1rem * 1.35 * 2);
 }
 
 .product-brand {
@@ -115,7 +116,7 @@
 }
 
 .current-price {
-  font-size: clamp(0.86rem, 5.2cqi, 1.8rem);
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--primary-color);
   line-height: 1.2;
@@ -124,7 +125,7 @@
 
 @media (min-width: 641px) {
   .current-price {
-    font-size: clamp(1.8rem, 5.5cqi, 2rem);
+    font-size: clamp(1.2rem, 5.5cqi, 1.8rem);
   }
 }
 
@@ -171,7 +172,7 @@
 .add-to-cart-btn:hover {
   background: var(--primary-dark);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(230, 57, 70, 0.3);
+  box-shadow: 0 4px 12px var(--primary-shadow);
 }
 
 .add-to-cart-btn:active {

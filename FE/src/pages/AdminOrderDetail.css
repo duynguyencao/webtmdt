@@ -154,7 +154,7 @@
 .admin-order-detail-total {
   font-weight: 700;
   font-size: 1.125rem;
-  color: var(--primary, #2563eb);
+  color: var(--primary, var(--primary-color));
 }
 
 .admin-order-detail-table-wrap {

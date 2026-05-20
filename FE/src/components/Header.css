@@ -126,7 +126,7 @@
 
 .search-input:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.1);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .search-btn {
@@ -160,7 +160,7 @@
 .user-icon {
   position: relative;
   font-size: 1.5rem;
-  color: #000000;
+  color: var(--text-dark);
   transition: var(--transition);
   padding: 8px;
   border-radius: 50%;
@@ -240,7 +240,7 @@
 }
 
 .user-dropdown-logout:hover {
-  background: #fff0f1;
+  background: var(--primary-soft);
 }
 
 .cart-icon:hover,
@@ -283,7 +283,9 @@
 }
 
 .navbar {
-  background: var(--text-dark);
+  background: var(--surface);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
   padding: 0;
 }
 
@@ -304,7 +306,7 @@
 .nav-link-root {
   display: block;
   padding: 0.85rem 1.4rem;
-  color: var(--white);
+  color: var(--text-dark);
   font-weight: 500;
   transition: var(--transition);
   position: relative;
@@ -325,7 +327,7 @@
 
 .nav-menu>li>a:hover,
 .nav-link-root:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--primary-soft);
   color: var(--primary-color);
 }
 
@@ -368,7 +370,7 @@
   .nav-menu>li>a,
   .nav-link-root {
     padding: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border-color);
   }
 
 }
@@ -394,16 +396,18 @@
   .header-icons {
     position: fixed;
     bottom: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: calc(100% - 24px);
+    left: 8px;
+    right: 8px;
+    transform: none;
+    width: auto;
     max-width: 400px;
+    margin: 0 auto;
     height: 64px;
     background: rgba(255, 255, 255, 0.75);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(229, 231, 235, 0.9);
+    box-shadow: 0 14px 36px rgba(17, 24, 39, 0.16);
     border-radius: 32px;
     z-index: 1000;
     display: flex;
@@ -411,7 +415,7 @@
     align-items: center;
     padding: 0;
     gap: 0;
-    color: #000000;
+    color: var(--text-dark);
   }
 
   .mobile-only-icon {
@@ -432,6 +436,7 @@
     justify-content: center;
     color: var(--text-dark);
     font-size: 1.25rem;
+    font-weight: 600;
     gap: 4px;
     border-radius: 0;
     background: transparent !important;
@@ -445,8 +450,8 @@
   .user-menu-container>button.active,
   .menu-toggle:hover,
   .menu-toggle.active {
-    color: #0068fb;
-    /* background: rgba(255, 255, 255, 0.517) !important; */
+    color: var(--primary-color);
+    background: transparent !important;
     border-radius: 12px;
   }
 
@@ -463,7 +468,7 @@
   .icon-label {
     display: block;
     font-size: 0.65rem;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .cart-badge {

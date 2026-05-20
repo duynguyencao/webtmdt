@@ -30,11 +30,11 @@
 .shipper-title {
   font-size: 1.3rem;
   font-weight: 900;
-  color: #0f172a;
+  color: #111827;
 }
 
 .shipper-sub {
-  color: #64748b;
+  color: #6B7280;
   font-weight: 600;
   margin-top: 2px;
   font-size: 0.95rem;
@@ -53,19 +53,19 @@
   border-radius: 12px;
   padding: 10px 12px;
   font-weight: 800;
-  color: #0f172a;
+  color: #111827;
 }
 
 .shipper-tab.active {
-  border-color: #e53935;
-  background: rgba(229, 57, 53, 0.08);
-  color: #e53935;
+  border-color: #DC2626;
+  background: rgba(220, 38, 38, 0.08);
+  color: #DC2626;
 }
 
 .shipper-empty {
   padding: 24px 12px;
   text-align: center;
-  color: #64748b;
+  color: #6B7280;
   font-weight: 700;
 }
 
@@ -91,7 +91,7 @@
 
 .shipper-oid {
   font-weight: 900;
-  color: #0f172a;
+  color: #111827;
 }
 
 .shipper-badge {
@@ -119,19 +119,19 @@
 }
 
 .shipper-k {
-  color: #64748b;
+  color: #6B7280;
   font-weight: 800;
   font-size: 0.9rem;
 }
 
 .shipper-v {
-  color: #0f172a;
+  color: #111827;
   font-weight: 700;
   word-break: break-word;
 }
 
 .shipper-phone {
-  color: #e53935;
+  color: #DC2626;
   text-decoration: none;
 }
 

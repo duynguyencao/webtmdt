@@ -204,7 +204,7 @@
   width: 18px;
   height: 18px;
   border-radius: 999px;
-  background: #e53935;
+  background: #DC2626;
   border: 2px solid #ffffff;
   transform: translate(-50%, -50%);
   cursor: pointer;
@@ -212,7 +212,7 @@
 }
 
 .price-dual-thumb.active {
-  box-shadow: 0 0 0 4px rgba(229, 57, 53, 0.18);
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.18);
 }
 
 .clear-filters {

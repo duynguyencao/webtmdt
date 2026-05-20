@@ -371,7 +371,7 @@ const AdminProducts = () => {
                   <td>{CATEGORIES.find((c) => c.value === p.category)?.label || p.category}</td>
                   <td>{formatPrice(p.price)}</td>
                   <td className="admin-description-cell">{p.description || '—'}</td>
-                  <td style={{ textAlign: 'center', color: (p.stock ?? 0) === 0 ? '#e53935' : 'inherit', fontWeight: (p.stock ?? 0) === 0 ? 600 : 400 }}>
+                  <td style={{ textAlign: 'center', color: (p.stock ?? 0) === 0 ? '#DC2626' : 'inherit', fontWeight: (p.stock ?? 0) === 0 ? 600 : 400 }}>
                     {(p.stock ?? 0) === 0 ? 'Hết hàng' : p.stock}
                   </td>
                   <td>

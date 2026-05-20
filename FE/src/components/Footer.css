@@ -1,6 +1,7 @@
 .footer {
-  background: var(--text-dark);
-  color: var(--white);
+  background: var(--surface);
+  color: var(--text-dark);
+  border-top: 1px solid var(--border-color);
   padding: 3rem 0 1rem;
   margin-top: 4rem;
 }
@@ -27,7 +28,7 @@
 }
 
 .footer-section p {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-light);
   line-height: 1.8;
   max-width: 390px;
 }
@@ -40,7 +41,7 @@
 }
 
 .footer-links li a {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-light);
   transition: var(--transition);
   display: inline-block;
 }
@@ -61,7 +62,7 @@
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-light);
   line-height: 1.55;
 }
 
@@ -82,25 +83,26 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--primary-soft);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--white);
+  color: var(--primary-color);
   font-size: 1.25rem;
   transition: var(--transition);
 }
 
 .social-links a:hover {
   background: var(--primary-color);
+  color: var(--white);
   transform: translateY(-3px);
 }
 
 .footer-bottom {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--border-color);
   padding-top: 1.5rem;
   text-align: center;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-light);
   font-size: 0.875rem;
 }
 

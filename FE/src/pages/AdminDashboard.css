@@ -16,7 +16,7 @@
 
 .admin-toolbar-card p {
   margin: 0.25rem 0 0;
-  color: #64748b;
+  color: #6B7280;
 }
 
 .admin-toolbar-controls {
@@ -41,19 +41,19 @@
 
 .admin-metric-card span {
   display: block;
-  color: #64748b;
+  color: #6B7280;
   margin-bottom: 0.35rem;
 }
 
 .admin-metric-card strong {
   font-size: 1.5rem;
-  color: #0f172a;
+  color: #111827;
 }
 
 .admin-metric-card small {
   display: block;
   margin-top: 0.45rem;
-  color: #64748b;
+  color: #6B7280;
   font-weight: 600;
 }
 
@@ -85,7 +85,7 @@
 
 .admin-chart-card h3 {
   margin-bottom: 1rem;
-  color: #0f172a;
+  color: #111827;
   font-size: 1.05rem;
 }
 
@@ -97,7 +97,7 @@
 
 .admin-section-subtitle {
   margin: 0;
-  color: #64748b;
+  color: #6B7280;
   font-weight: 600;
   line-height: 1.45;
   font-size: 0.93rem;
@@ -121,12 +121,12 @@
 
 .admin-field-label {
   font-weight: 800;
-  color: #0f172a;
+  color: #111827;
   font-size: 0.95rem;
 }
 
 .admin-field-help {
-  color: #64748b;
+  color: #6B7280;
   font-size: 0.82rem;
   line-height: 1.35;
   font-weight: 600;
@@ -159,7 +159,7 @@
 
 .admin-bar-label {
   font-size: 0.88rem;
-  color: #64748b;
+  color: #6B7280;
 }
 
 .admin-bar-track {
@@ -171,11 +171,11 @@
 
 .admin-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
 }
 
 .admin-bar-fill.secondary {
-  background: linear-gradient(90deg, #0ea5e9, #3b82f6);
+  background: linear-gradient(90deg, var(--primary-light), var(--primary-light));
 }
 
 .admin-bar-value {
@@ -203,8 +203,8 @@
 .admin-chart-card textarea:focus,
 .admin-chart-card select:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .admin-error {
@@ -236,7 +236,7 @@
 
 .admin-recent-order-item p {
   margin: 0.25rem 0 0;
-  color: #64748b;
+  color: #6B7280;
 }
 
 .admin-recent-order-item > div:last-child {
@@ -294,13 +294,13 @@
 }
 
 .admin-range-item span {
-  color: #64748b;
+  color: #6B7280;
   font-weight: 600;
   font-size: 0.9rem;
 }
 
 .admin-range-item strong {
-  color: #0f172a;
+  color: #111827;
   font-size: 1.15rem;
 }
 
@@ -335,19 +335,19 @@
 .admin-date-modal-title {
   font-size: 1.05rem;
   font-weight: 800;
-  color: #0f172a;
+  color: #111827;
 }
 
 .admin-date-modal-range {
   margin-top: 0.25rem;
-  color: #64748b;
+  color: #6B7280;
 }
 
 .admin-date-modal-close {
   background: transparent;
   font-size: 1.6rem;
   line-height: 1;
-  color: #64748b;
+  color: #6B7280;
   padding: 0.25rem 0.5rem;
   border-radius: 10px;
 }
@@ -410,7 +410,7 @@
   border-radius: 10px;
   padding: 0.35rem 0.55rem;
   background: #fff;
-  color: #0f172a;
+  color: #111827;
   font-weight: 700;
 }
 

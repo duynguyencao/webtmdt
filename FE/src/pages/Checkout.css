@@ -93,7 +93,7 @@
 .form-group textarea:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.1);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .payment-methods {
@@ -154,7 +154,7 @@
 
 .form-section-note .note-input-wrapper:focus-within {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.1);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .form-section-note .note-textarea {
@@ -335,7 +335,7 @@
   text-align: left;
   margin: 1.5rem 0;
   padding: 1.25rem;
-  background: #f8f9fa;
+  background: #F8FAFC;
   border-radius: 10px;
   border: 1px solid var(--border-color);
 }

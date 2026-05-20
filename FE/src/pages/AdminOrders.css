@@ -14,7 +14,7 @@
 
 .admin-orders-page .admin-header h2 {
   font-size: 1.1rem;
-  color: #0f172a;
+  color: #111827;
 }
 
 .admin-orders-page .admin-header-actions {
@@ -40,8 +40,8 @@
 
 .admin-order-search-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .admin-order-row-clickable {
@@ -148,7 +148,7 @@
   align-items: center;
   padding: 0.75rem 1rem;
   border-top: 1px solid #edf2f7;
-  color: #64748b;
+  color: #6B7280;
   font-weight: 600;
 }
 

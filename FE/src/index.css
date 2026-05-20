@@ -5,23 +5,44 @@
 }
 
 :root {
-  --primary-color: #e63946;
-  --primary-dark: #d62839;
-  --secondary-color: #457b9d;
-  --accent-color: #f1faee;
-  --text-dark: #1d3557;
-  --text-light: #6c757d;
-  --bg-light: #f8f9fa;
-  --white: #ffffff;
-  --border-color: #e9ecef;
+  --primary: #B4233A;
+  --primary-color: #B4233A;
+  --primary-dark: #8F1D32;
+  --primary-hover: #8F1D32;
+  --primary-light: #E85D75;
+  --primary-soft: #FFF1F3;
+  --secondary-color: #F08A7A;
+  --accent-color: #FFF1F3;
+  --background: #F8FAFC;
+  --surface: #FFFFFF;
+  --text-primary: #111827;
+  --text-dark: #111827;
+  --text-secondary: #6B7280;
+  --text-light: #6B7280;
+  --text-disabled: #9CA3AF;
+  --text-inverse: #FFFFFF;
+  --bg-light: #F8FAFC;
+  --white: #FFFFFF;
+  --border: #E5E7EB;
+  --border-color: #E5E7EB;
+  --success: #16A34A;
+  --success-soft: #DCFCE7;
+  --warning: #D97706;
+  --warning-soft: #FEF3C7;
+  --danger: #DC2626;
+  --danger-soft: #FEE2E2;
+  --info: #2563EB;
+  --info-soft: #DBEAFE;
+  --focus-ring: var(--focus-ring);
+  --primary-shadow: rgba(180, 35, 58, 0.28);
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15);
   --transition: all 0.3s ease;
-  --admin-bg: #f6f8fc;
-  --admin-card: #ffffff;
-  --admin-border: #e5e7eb;
-  --admin-text: #0f172a;
-  --admin-muted: #64748b;
+  --admin-bg: #F8FAFC;
+  --admin-card: #FFFFFF;
+  --admin-border: #E5E7EB;
+  --admin-text: #111827;
+  --admin-muted: #6B7280;
 }
 
 body {
@@ -75,6 +96,7 @@ input[type="checkbox"].toggle-switch {
   flex-shrink: 0;
   margin: 0;
 }
+
 input[type="checkbox"].toggle-switch::after {
   content: '';
   position: absolute;
@@ -85,11 +107,13 @@ input[type="checkbox"].toggle-switch::after {
   background: white;
   border-radius: 50%;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
+
 input[type="checkbox"].toggle-switch:checked {
-  background: var(--primary-color, #3b82f6);
+  background: var(--primary-color, #B4233A);
 }
+
 input[type="checkbox"].toggle-switch:checked::after {
   transform: translateX(20px);
 }
